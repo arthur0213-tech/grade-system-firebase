@@ -65,6 +65,8 @@
         <div id="logged-user-chip" class="hidden items-center bg-indigo-800/80 border border-indigo-500/50 rounded-full px-3 py-1 text-xs sm:text-sm text-indigo-100 space-x-2">
           <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span id="logged-user-name">座號 01 號</span>
+          <button id="btn-header-change-pwd" class="text-indigo-200 hover:text-white font-medium underline text-xs">改密碼</button>
+          <span class="text-indigo-400 text-xs">|</span>
           <button id="btn-header-logout" class="text-indigo-300 hover:text-white ml-1 font-semibold underline text-xs">登出</button>
         </div>
 
@@ -201,6 +203,12 @@
               </svg>
             </div>
           </div>
+          <button id="btn-open-student-change-pwd" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 font-semibold px-3 sm:px-4 py-2.5 rounded-xl text-xs sm:text-sm transition flex items-center space-x-1.5 flex-shrink-0">
+            <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+            </svg>
+            <span>變更密碼</span>
+          </button>
           <button id="btn-dashboard-logout" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2.5 rounded-xl text-sm transition flex items-center space-x-1.5 flex-shrink-0">
             <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
@@ -351,6 +359,12 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
               </svg>
               <span>切換回學生查詢介面</span>
+            </button>
+            <button id="btn-open-admin-change-pwd" class="bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-medium px-3.5 py-2 rounded-xl text-xs sm:text-sm transition flex items-center space-x-1.5">
+              <svg class="w-4 h-4 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+              </svg>
+              <span>修改管理密碼</span>
             </button>
             <button id="btn-admin-logout" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3.5 py-2 rounded-xl text-xs sm:text-sm transition">
               登出後台
@@ -907,6 +921,109 @@
           </button>
           <button type="submit" class="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition">
             儲存學生
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- ========================================== -->
+  <!-- MODAL: CHANGE STUDENT / PARENT PASSWORD    -->
+  <!-- ========================================== -->
+  <div id="modal-student-change-pwd" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 relative">
+      <button type="button" id="btn-close-student-change-pwd-modal" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-slate-800">變更查詢密碼</h3>
+          <p class="text-xs text-slate-500"><span id="change-pwd-student-name">王小明</span> (座號 <span id="change-pwd-student-seat">01</span>)</p>
+        </div>
+      </div>
+
+      <form id="form-student-change-pwd" class="space-y-3.5 text-xs">
+        <div>
+          <label for="change-pwd-old-input" class="block font-semibold text-slate-700 mb-1">目前原密碼：</label>
+          <input type="password" id="change-pwd-old-input" placeholder="請輸入目前密碼 (預設身分證末四碼)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-mono" required>
+        </div>
+        <div>
+          <label for="change-pwd-new-input" class="block font-semibold text-slate-700 mb-1">設定新密碼：</label>
+          <input type="password" id="change-pwd-new-input" placeholder="請輸入新密碼 (至少 4 碼)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-mono" required>
+        </div>
+        <div>
+          <label for="change-pwd-confirm-input" class="block font-semibold text-slate-700 mb-1">確認新密碼：</label>
+          <input type="password" id="change-pwd-confirm-input" placeholder="請再次輸入新密碼" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-mono" required>
+        </div>
+
+        <div id="student-change-pwd-error" class="hidden text-xs text-rose-600 bg-rose-50 p-2.5 rounded-xl font-medium border border-rose-200"></div>
+
+        <div class="pt-2 flex space-x-2">
+          <button type="button" id="btn-cancel-student-change-pwd" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl transition">
+            取消
+          </button>
+          <button type="submit" class="w-1/2 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold py-2.5 rounded-xl transition shadow">
+            確認變更
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: CHANGE ADMIN PASSWORD               -->
+  <!-- ========================================== -->
+  <div id="modal-admin-change-pwd" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 relative">
+      <button type="button" id="btn-close-admin-change-pwd-modal" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+
+      <div class="flex items-center space-x-3 mb-4">
+        <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-slate-800">修改管理密碼</h3>
+          <p class="text-xs text-slate-500">更新導師後台管理登入密碼</p>
+        </div>
+      </div>
+
+      <form id="form-admin-change-pwd" class="space-y-3.5 text-xs">
+        <div>
+          <label for="admin-change-old-input" class="block font-semibold text-slate-700 mb-1">目前管理員密碼：</label>
+          <input type="password" id="admin-change-old-input" placeholder="請輸入原密碼 (預設 admin888)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-mono" required>
+        </div>
+        <div>
+          <label for="admin-change-new-input" class="block font-semibold text-slate-700 mb-1">設定新管理密碼：</label>
+          <input type="password" id="admin-change-new-input" placeholder="請輸入新管理密碼 (至少 6 碼)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-mono" required>
+        </div>
+        <div>
+          <label for="admin-change-confirm-input" class="block font-semibold text-slate-700 mb-1">確認新管理密碼：</label>
+          <input type="password" id="admin-change-confirm-input" placeholder="請再次輸入新管理密碼" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-indigo-500 font-mono" required>
+        </div>
+
+        <div id="admin-change-pwd-error" class="hidden text-xs text-rose-600 bg-rose-50 p-2.5 rounded-xl font-medium border border-rose-200"></div>
+
+        <div class="pt-2 flex space-x-2">
+          <button type="button" id="btn-cancel-admin-change-pwd" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl transition">
+            取消
+          </button>
+          <button type="submit" class="w-1/2 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white font-semibold py-2.5 rounded-xl transition shadow">
+            確認修改
           </button>
         </div>
       </form>
@@ -2229,6 +2346,170 @@
       });
 
       // ========================================================
+
+      // ========================================================
+      // CHANGE STUDENT PASSWORD MODAL HANDLERS
+      // ========================================================
+      const studentPwdModal = document.getElementById('modal-student-change-pwd');
+      const studentOldPwdInp = document.getElementById('change-pwd-old-input');
+      const studentNewPwdInp = document.getElementById('change-pwd-new-input');
+      const studentConfirmPwdInp = document.getElementById('change-pwd-confirm-input');
+      const studentPwdError = document.getElementById('student-change-pwd-error');
+
+      function openStudentChangePwdModal() {
+        if (!state.currentParentStudent) {
+          showToast('請先登入學生帳號！', 'warning');
+          return;
+        }
+        document.getElementById('change-pwd-student-name').textContent = state.currentParentStudent.name;
+        document.getElementById('change-pwd-student-seat').textContent = formatSeat(state.currentParentStudent.seat);
+        studentOldPwdInp.value = '';
+        studentNewPwdInp.value = '';
+        studentConfirmPwdInp.value = '';
+        studentPwdError.classList.add('hidden');
+        studentPwdError.textContent = '';
+        studentPwdModal.classList.remove('hidden');
+        setTimeout(() => studentOldPwdInp.focus(), 100);
+      }
+
+      function closeStudentChangePwdModal() {
+        studentPwdModal.classList.add('hidden');
+      }
+
+      document.getElementById('btn-open-student-change-pwd').addEventListener('click', openStudentChangePwdModal);
+      const headerChangePwdBtn = document.getElementById('btn-header-change-pwd');
+      if (headerChangePwdBtn) headerChangePwdBtn.addEventListener('click', openStudentChangePwdModal);
+      document.getElementById('btn-close-student-change-pwd-modal').addEventListener('click', closeStudentChangePwdModal);
+      document.getElementById('btn-cancel-student-change-pwd').addEventListener('click', closeStudentChangePwdModal);
+
+      document.getElementById('form-student-change-pwd').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const oldVal = studentOldPwdInp.value.trim();
+        const newVal = studentNewPwdInp.value.trim();
+        const confirmVal = studentConfirmPwdInp.value.trim();
+
+        if (!state.currentParentStudent) {
+          showToast('目前未登入學生帳號！', 'error');
+          closeStudentChangePwdModal();
+          return;
+        }
+
+        if (oldVal !== state.currentParentStudent.password) {
+          studentPwdError.textContent = '原密碼不正確，請確認後重新輸入！';
+          studentPwdError.classList.remove('hidden');
+          studentOldPwdInp.classList.add('shake-anim');
+          setTimeout(() => studentOldPwdInp.classList.remove('shake-anim'), 500);
+          studentOldPwdInp.focus();
+          return;
+        }
+
+        if (newVal.length < 4) {
+          studentPwdError.textContent = '新密碼長度至少需 4 碼！';
+          studentPwdError.classList.remove('hidden');
+          studentNewPwdInp.focus();
+          return;
+        }
+
+        if (newVal === oldVal) {
+          studentPwdError.textContent = '新密碼不能與原密碼相同！';
+          studentPwdError.classList.remove('hidden');
+          studentNewPwdInp.focus();
+          return;
+        }
+
+        if (newVal !== confirmVal) {
+          studentPwdError.textContent = '兩次輸入的新密碼不一致，請重新確認！';
+          studentPwdError.classList.remove('hidden');
+          studentConfirmPwdInp.focus();
+          return;
+        }
+
+        state.currentParentStudent.password = newVal;
+        const matched = state.students.find((s) => s.seat === state.currentParentStudent.seat);
+        if (matched) {
+          matched.password = newVal;
+        }
+
+        saveState();
+        recordAccessLog(state.currentParentStudent, '自主變更查詢密碼');
+        closeStudentChangePwdModal();
+        showToast('查詢密碼已成功更新！下次請使用新密碼登入。', 'success');
+      });
+
+      // ========================================================
+      // CHANGE ADMIN PASSWORD MODAL HANDLERS
+      // ========================================================
+      const adminPwdModal = document.getElementById('modal-admin-change-pwd');
+      const adminOldPwdInp = document.getElementById('admin-change-old-input');
+      const adminNewPwdInp = document.getElementById('admin-change-new-input');
+      const adminConfirmPwdInp = document.getElementById('admin-change-confirm-input');
+      const adminPwdError = document.getElementById('admin-change-pwd-error');
+
+      function openAdminChangePwdModal() {
+        if (!state.isAdmin) {
+          showToast('請先登入教師管理後台！', 'warning');
+          return;
+        }
+        adminOldPwdInp.value = '';
+        adminNewPwdInp.value = '';
+        adminConfirmPwdInp.value = '';
+        adminPwdError.classList.add('hidden');
+        adminPwdError.textContent = '';
+        adminPwdModal.classList.remove('hidden');
+        setTimeout(() => adminOldPwdInp.focus(), 100);
+      }
+
+      function closeAdminChangePwdModal() {
+        adminPwdModal.classList.add('hidden');
+      }
+
+      document.getElementById('btn-open-admin-change-pwd').addEventListener('click', openAdminChangePwdModal);
+      document.getElementById('btn-close-admin-change-pwd-modal').addEventListener('click', closeAdminChangePwdModal);
+      document.getElementById('btn-cancel-admin-change-pwd').addEventListener('click', closeAdminChangePwdModal);
+
+      document.getElementById('form-admin-change-pwd').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const oldVal = adminOldPwdInp.value.trim();
+        const newVal = adminNewPwdInp.value.trim();
+        const confirmVal = adminConfirmPwdInp.value.trim();
+        const currentPin = state.config.adminPin || 'admin888';
+
+        if (oldVal !== currentPin) {
+          adminPwdError.textContent = '目前管理員密碼不正確！';
+          adminPwdError.classList.remove('hidden');
+          adminOldPwdInp.classList.add('shake-anim');
+          setTimeout(() => adminOldPwdInp.classList.remove('shake-anim'), 500);
+          adminOldPwdInp.focus();
+          return;
+        }
+
+        if (newVal.length < 6) {
+          adminPwdError.textContent = '新管理密碼長度至少需 6 碼！';
+          adminPwdError.classList.remove('hidden');
+          adminNewPwdInp.focus();
+          return;
+        }
+
+        if (newVal === oldVal) {
+          adminPwdError.textContent = '新管理密碼不能與原密碼相同！';
+          adminPwdError.classList.remove('hidden');
+          adminNewPwdInp.focus();
+          return;
+        }
+
+        if (newVal !== confirmVal) {
+          adminPwdError.textContent = '兩次輸入的新管理密碼不一致！';
+          adminPwdError.classList.remove('hidden');
+          adminConfirmPwdInp.focus();
+          return;
+        }
+
+        state.config.adminPin = newVal;
+        saveState();
+        closeAdminChangePwdModal();
+        showToast('管理員密碼已更新成功！下次登入後台請使用新密碼。', 'success');
+      });
+
       // ADMIN AUTH & ROUTING
       // ========================================================
       const adminModal = document.getElementById('modal-admin-login');
