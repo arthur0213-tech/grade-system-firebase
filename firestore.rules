@@ -1,0 +1,10 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 學校內部評量查詢系統規則
+    // 預設允許班級資料讀寫，部署後可依據需要串接 Firebase Authentication 限制教師寫入權限
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
