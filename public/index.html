@@ -584,7 +584,7 @@
                 <label for="new-exam-release-input" class="block text-xs font-semibold text-slate-700 mb-1">開放家長查詢時間 (避開休假前夕)：</label>
                 <input type="datetime-local" id="new-exam-release-input" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
                 <div class="mt-1.5 flex items-center space-x-1.5">
-                  <input type="checkbox" id="new-exam-hide-checkbox" class="w-3.5 h-3.5 text-indigo-600 rounded cursor-pointer">
+                  <input type="checkbox" id="new-exam-hide-checkbox" checked class="w-3.5 h-3.5 text-indigo-600 rounded cursor-pointer">
                   <label for="new-exam-hide-checkbox" class="text-[11px] text-slate-600 font-semibold cursor-pointer">🙈 不顯示（僅老師內部算成績，家長端完全看不到）</label>
                 </div>
               </div>
@@ -1225,7 +1225,8 @@
                   "22": 92,
                   "23": 95,
                   "24": 97
-            }
+            },
+            "isHidden": true
       },
       {
             "id": "exam_math_1",
@@ -1258,7 +1259,8 @@
                   "22": 67,
                   "23": 72,
                   "24": 100
-            }
+            },
+            "isHidden": true
       },
       {
             "id": "exam_math_quiz_1",
@@ -1291,7 +1293,8 @@
                   "22": 95,
                   "23": 94,
                   "24": 97
-            }
+            },
+            "isHidden": true
       }
 ];
 
@@ -1464,6 +1467,7 @@
             date: getNowTimestamp().substring(0, 10),
             releaseTime: `${getNowTimestamp().substring(0, 10)}T08:00`,
             isLocked: false,
+            isHidden: true, // 預設所有成績均不顯示（僅教師端可見）
             grades: {}
           };
           state.exams.push(exam);
@@ -2983,7 +2987,7 @@
 
         const releaseTimeVal = releaseInp ? releaseInp.value : '';
         const hideCheckbox = document.getElementById('new-exam-hide-checkbox');
-        const isHiddenVal = hideCheckbox ? hideCheckbox.checked : false;
+        const isHiddenVal = hideCheckbox ? hideCheckbox.checked : true;
         const newId = 'exam_' + Date.now();
         const newExam = {
           id: newId,
@@ -3001,6 +3005,7 @@
 
         state.exams.push(newExam);
         state.selectedExamId = newId;
+        if (hideCheckbox) hideCheckbox.checked = true;
         saveState();
 
         populateExamSelects();
