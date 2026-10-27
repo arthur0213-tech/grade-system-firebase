@@ -583,6 +583,10 @@
               <div class="sm:col-span-4">
                 <label for="new-exam-release-input" class="block text-xs font-semibold text-slate-700 mb-1">開放家長查詢時間 (避開休假前夕)：</label>
                 <input type="datetime-local" id="new-exam-release-input" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+                <div class="mt-1.5 flex items-center space-x-1.5">
+                  <input type="checkbox" id="new-exam-hide-checkbox" class="w-3.5 h-3.5 text-indigo-600 rounded cursor-pointer">
+                  <label for="new-exam-hide-checkbox" class="text-[11px] text-slate-600 font-semibold cursor-pointer">🙈 不顯示（僅老師內部算成績，家長端完全看不到）</label>
+                </div>
               </div>
               <div class="sm:col-span-3">
                 <button type="button" id="btn-add-new-exam" class="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white py-2 rounded-xl text-xs font-semibold transition shadow flex items-center justify-center space-x-1.5">
@@ -1688,6 +1692,16 @@
 
     function getExamStatusInfo(exam) {
       if (!exam) return { isOpen: false, text: '未知', badgeClass: 'bg-slate-100 text-slate-600', isHolidayRisk: false };
+      if (exam.isHidden) {
+        return {
+          isOpen: false,
+          isHidden: true,
+          text: '🙈 不顯示 (僅教師內部可見)',
+          badgeClass: 'bg-slate-100 text-slate-700 border border-slate-300',
+          isHolidayRisk: false,
+          releaseStr: '不對家長顯示'
+        };
+      }
       if (exam.isLocked) {
         return {
           isOpen: false,
@@ -1827,7 +1841,15 @@
       const parentSelect = document.getElementById('exam-select');
       if (!parentSelect) return;
 
-      parentSelect.innerHTML = state.exams.map((ex) => {
+      // Filter out hidden exams for parents!
+      const visibleExams = state.exams.filter((ex) => !ex.isHidden);
+
+      if (visibleExams.length === 0) {
+        parentSelect.innerHTML = '<option value="">(目前無公開評量項目)</option>';
+        return;
+      }
+
+      parentSelect.innerHTML = visibleExams.map((ex) => {
         let label = escapeHtml(ex.title);
         const status = getExamStatusInfo(ex);
         if (status.isOpen) {
@@ -1838,18 +1860,31 @@
         return `<option value="${ex.id}">${label}</option>`;
       }).join('');
 
-      if (state.selectedExamId) {
-        parentSelect.value = state.selectedExamId;
+      // If current selectedExamId is hidden or not in visible list, switch to first visible exam
+      if (!state.selectedExamId || !visibleExams.some((e) => e.id === state.selectedExamId)) {
+        state.selectedExamId = visibleExams[0].id;
       }
+      parentSelect.value = state.selectedExamId;
     }
 
     function renderParentDashboard() {
       const student = state.currentParentStudent;
       if (!student) return;
 
-      const examId = state.selectedExamId;
-      const exam = state.exams.find((e) => e.id === examId) || state.exams[0];
-      if (!exam) return;
+      const visibleExams = state.exams.filter((ex) => !ex.isHidden);
+      let exam = state.exams.find((e) => e.id === state.selectedExamId);
+      if (!exam || exam.isHidden) {
+        exam = visibleExams[0];
+      }
+      if (!exam) {
+        document.getElementById('dashboard-grades-content').classList.add('hidden');
+        const lockedBox = document.getElementById('dashboard-locked-content');
+        lockedBox.classList.remove('hidden');
+        document.getElementById('locked-exam-title').textContent = '目前暫無開放查詢之評量項目';
+        document.getElementById('locked-release-time-display').textContent = '尚無排程';
+        document.getElementById('locked-countdown-display').textContent = '請等候導師公告';
+        return;
+      }
 
       state.selectedExamId = exam.id;
       const examSelect = document.getElementById('exam-select');
@@ -2147,6 +2182,7 @@
         tr.innerHTML = `
           <td class="py-3 px-4 font-bold text-slate-800 flex items-center space-x-2">
             <span>${escapeHtml(ex.title)}</span>
+            ${ex.isHidden ? '<span class="px-1.5 py-0.5 rounded text-[10px] bg-slate-200 text-slate-700 font-semibold">🙈 不顯示(僅內部)</span>' : ''}
             ${isCurrent ? '<span class="px-1.5 py-0.5 rounded text-[10px] bg-indigo-600 text-white font-semibold">編輯中</span>' : ''}
           </td>
           <td class="py-3 px-4 text-slate-500 font-mono">${escapeHtml(ex.date || '--')}</td>
@@ -2161,6 +2197,9 @@
             <div class="inline-flex items-center space-x-1.5">
               <button type="button" class="btn-select-exam-view ${isCurrent ? 'bg-indigo-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'} px-2.5 py-1 rounded-md text-xs font-semibold transition" data-exam-id="${ex.id}">
                 ${isCurrent ? '✓ 檢視中' : '✏️ 編輯成績'}
+              </button>
+              <button type="button" class="btn-toggle-exam-hide ${ex.isHidden ? 'bg-purple-100 text-purple-700 hover:bg-purple-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'} px-2.5 py-1 rounded-md text-xs font-semibold transition" data-exam-id="${ex.id}" title="${ex.isHidden ? '點擊恢復對家長公開' : '點擊隱藏，家長端完全不顯示'}">
+                ${ex.isHidden ? '👁️ 恢復顯示' : '🙈 不顯示'}
               </button>
               <button type="button" class="btn-open-delete-modal bg-rose-50 hover:bg-rose-100 text-rose-700 px-2.5 py-1 rounded-md text-xs font-semibold transition" data-exam-id="${ex.id}">
                 🗑 刪除
@@ -2186,6 +2225,21 @@
       });
 
       // Wire delete exam modal triggers
+      tbody.querySelectorAll('.btn-toggle-exam-hide').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const examId = btn.getAttribute('data-exam-id');
+          const ex = state.exams.find((e) => e.id === examId);
+          if (!ex) return;
+          ex.isHidden = !ex.isHidden;
+          saveState();
+          populateExamSelects();
+          renderAdminExamsOverview();
+          renderScheduleTable();
+          if (state.currentParentStudent) renderParentDashboard();
+          showToast(ex.isHidden ? `已設定「${ex.title}」為不顯示（家長端完全隱藏）！` : `已恢復「${ex.title}」公開顯示！`, 'success');
+        });
+      });
+
       tbody.querySelectorAll('.btn-open-delete-modal').forEach((btn) => {
         btn.addEventListener('click', () => {
           const examId = btn.getAttribute('data-exam-id');
@@ -2284,6 +2338,9 @@
               <button type="button" class="btn-sched-lock bg-amber-50 hover:bg-amber-100 text-amber-800 px-2.5 py-1 rounded-md text-xs font-medium transition" data-exam-id="${ex.id}">
                 ${ex.isLocked ? '🔓 解鎖' : '🔒 鎖定'}
               </button>
+              <button type="button" class="btn-sched-hide ${ex.isHidden ? 'bg-purple-100 text-purple-700 hover:bg-purple-200' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'} px-2.5 py-1 rounded-md text-xs font-medium transition" data-exam-id="${ex.id}">
+                ${ex.isHidden ? '👁️ 恢復顯示' : '🙈 不顯示'}
+              </button>
               <button type="button" class="btn-sched-save bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-md text-xs font-medium transition" data-exam-id="${ex.id}">
                 儲存
               </button>
@@ -2341,6 +2398,21 @@
           populateExamSelects();
           renderScheduleTable();
           showToast(ex.isLocked ? `已鎖定「${ex.title}」，家長暫時無法查詢` : `已解除「${ex.title}」鎖定`, 'info');
+        });
+      });
+
+      tbody.querySelectorAll('.btn-sched-hide').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const examId = btn.getAttribute('data-exam-id');
+          const ex = state.exams.find((e) => e.id === examId);
+          if (!ex) return;
+          ex.isHidden = !ex.isHidden;
+          saveState();
+          populateExamSelects();
+          renderAdminExamsOverview();
+          renderScheduleTable();
+          if (state.currentParentStudent) renderParentDashboard();
+          showToast(ex.isHidden ? `已設定「${ex.title}」為不顯示（家長端完全隱藏）！` : `已恢復「${ex.title}」公開顯示！`, 'success');
         });
       });
 
@@ -2910,6 +2982,8 @@
         }
 
         const releaseTimeVal = releaseInp ? releaseInp.value : '';
+        const hideCheckbox = document.getElementById('new-exam-hide-checkbox');
+        const isHiddenVal = hideCheckbox ? hideCheckbox.checked : false;
         const newId = 'exam_' + Date.now();
         const newExam = {
           id: newId,
@@ -2917,6 +2991,7 @@
           date: getNowTimestamp().substring(0, 10),
           releaseTime: releaseTimeVal || `${getNowTimestamp().substring(0, 10)}T08:00`,
           isLocked: false,
+          isHidden: isHiddenVal,
           grades: {}
         };
 
