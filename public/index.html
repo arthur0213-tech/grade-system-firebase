@@ -1,0 +1,2819 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>學生學業成績查詢系統與後台管理</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1"></script>
+  <!-- Firebase SDK (v10 compat) -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+    body {
+      font-family: 'Inter', 'Noto Sans TC', sans-serif;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    .shake-anim {
+      animation: shake 0.4s ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col custom-scrollbar">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+  <!-- Header -->
+  <header class="bg-indigo-700 text-white shadow-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-white/10 backdrop-blur border border-white/20 flex items-center justify-center font-bold text-xl text-yellow-300 shadow-inner">
+          <svg class="w-6 h-6 text-yellow-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+          </svg>
+        </div>
+        <div>
+          <h1 id="site-title-display" class="font-bold text-lg sm:text-xl tracking-tight leading-tight">八年三班 學生成績查詢系統</h1>
+          <p id="site-subtitle-display" class="text-xs text-indigo-200">家長即時專區與班級組距分析</p>
+        </div>
+      </div>
+
+      <!-- Navigation & Mode Toggle -->
+      <div class="flex items-center space-x-2 sm:space-x-3">
+        <div id="logged-user-chip" class="hidden items-center bg-indigo-800/80 border border-indigo-500/50 rounded-full px-3 py-1 text-xs sm:text-sm text-indigo-100 space-x-2">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="logged-user-name">座號 01 號</span>
+          <button id="btn-header-logout" class="text-indigo-300 hover:text-white ml-1 font-semibold underline text-xs">登出</button>
+        </div>
+
+        <span id="firebase-cloud-status" class="hidden sm:inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full bg-indigo-800 text-indigo-200 border border-indigo-600/50">💾 本機模式</span>
+        <button id="btn-toggle-admin" class="flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-800 text-white text-xs sm:text-sm px-3.5 py-1.5 rounded-lg border border-indigo-400/40 shadow-sm transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <span id="admin-btn-text">後台管理</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- ========================================== -->
+    <!-- VIEW 1: PARENT LOGIN (家長登入介面)        -->
+    <!-- ========================================== -->
+    <div id="view-parent-login" class="max-w-md mx-auto my-8 sm:my-12 transition-all">
+      <div class="bg-white rounded-2xl shadow-xl border border-slate-200/80 overflow-hidden">
+        <!-- Card Top Banner -->
+        <div class="bg-gradient-to-r from-indigo-600 via-indigo-700 to-blue-700 px-6 py-8 text-center text-white relative">
+          <div class="w-16 h-16 mx-auto mb-3 bg-white/10 rounded-2xl backdrop-blur border border-white/20 flex items-center justify-center shadow-lg">
+            <svg class="w-9 h-9 text-indigo-100" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+          </div>
+          <h2 class="text-2xl font-bold tracking-tight">家長登入查詢</h2>
+          <p class="text-xs text-indigo-200 mt-1">請選擇孩子座號並輸入查詢密碼</p>
+        </div>
+
+        <!-- Form Body -->
+        <div class="p-6 sm:p-8 space-y-5">
+          
+
+          <form id="form-parent-login" class="space-y-4">
+            <!-- Seat Number Dropdown -->
+            <div>
+              <label for="login-seat-select" class="block text-sm font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+                <span>學生座號</span>
+                <span class="text-xs font-normal text-slate-500">請選取學生座號</span>
+              </label>
+              <div class="relative">
+                <select id="login-seat-select" class="w-full appearance-none bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-slate-800 font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white outline-none transition cursor-pointer">
+                  <!-- Populated by JS -->
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-400">
+                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Password Input -->
+            <div>
+              <label for="login-password-input" class="block text-sm font-semibold text-slate-700 mb-1.5 flex items-center justify-between">
+                <span>查詢密碼</span>
+                <span class="text-xs font-normal text-slate-500">預設為學生身分證末四碼</span>
+              </label>
+              <div class="relative">
+                <input type="password" id="login-password-input" placeholder="請輸入學生身分證末四碼" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-slate-800 font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white outline-none transition pr-11" autocomplete="current-password">
+                <button type="button" id="btn-toggle-login-pwd" class="absolute inset-y-0 right-0 flex items-center px-3.5 text-slate-400 hover:text-slate-600 transition">
+                  <svg id="pwd-icon-show" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                  <svg id="pwd-icon-hide" class="w-5 h-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div id="login-error-msg" class="hidden text-xs text-rose-600 bg-rose-50 border border-rose-200 rounded-lg p-2.5 font-medium"></div>
+
+            <button type="submit" id="btn-login-submit" class="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold py-3.5 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center space-x-2">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+              </svg>
+              <span>登入查看成績</span>
+            </button>
+          </form>
+
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+            <span>忘記密碼？請聯繫導師協助查詢</span>
+            <button type="button" id="btn-demo-quick-login" class="text-indigo-600 hover:text-indigo-800 font-medium">快速填入 01 號登入</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW 2: PARENT DASHBOARD (家長成績查詢結果) -->
+    <!-- ========================================== -->
+    <div id="view-parent-dashboard" class="hidden space-y-6">
+
+      <!-- Student Banner & Controls -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="flex items-center space-x-4">
+          <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white font-bold text-2xl flex items-center justify-center shadow-md flex-shrink-0">
+            <span id="student-seat-badge">01</span>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <h2 id="student-name-display" class="text-xl sm:text-2xl font-bold text-slate-800">王小明 同學</h2>
+              <span class="bg-indigo-100 text-indigo-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">座號 <span id="student-seat-num">01</span></span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span>本次查詢時間：<span id="log-time-now" class="font-medium text-slate-700">--</span></span>
+              <span class="hidden sm:inline text-slate-300">|</span>
+              <span>上次查詢時間：<span id="log-time-prev" class="font-medium text-slate-700">首次查詢</span></span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Exam Selector & Logout -->
+        <div class="flex items-center space-x-3 w-full md:w-auto">
+          <div id="exam-open-status-badge" class="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span>
+            <span>開放查詢中</span>
+          </div>
+          <div class="flex-1 md:flex-none relative">
+            <label for="exam-select" class="sr-only">選擇考試</label>
+            <select id="exam-select" class="w-full md:w-56 appearance-none bg-indigo-50 border border-indigo-200 text-indigo-900 font-semibold rounded-xl px-4 py-2.5 pr-9 text-sm focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer">
+              <!-- Populated by JS -->
+            </select>
+            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-indigo-600">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+              </svg>
+            </div>
+          </div>
+          <button id="btn-dashboard-logout" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-4 py-2.5 rounded-xl text-sm transition flex items-center space-x-1.5 flex-shrink-0">
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+            </svg>
+            <span>登出</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Locked Screen (When Exam is not yet open) -->
+      <div id="dashboard-locked-content" class="hidden bg-white rounded-2xl shadow-sm border border-slate-200 p-6 sm:p-10 text-center space-y-6">
+        <div class="w-20 h-20 mx-auto rounded-3xl bg-amber-50 border border-amber-200 text-amber-500 flex items-center justify-center shadow-inner">
+          <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </div>
+        <div class="max-w-md mx-auto space-y-2">
+          <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-semibold">評量成績尚未開放查詢</span>
+          <h3 id="locked-exam-title" class="text-2xl font-bold text-slate-800">第二次段考</h3>
+          <p class="text-xs text-slate-500">本項目已排定開放查詢時間，目前系統處於保護鎖定狀態。</p>
+        </div>
+
+        <div class="max-w-md mx-auto bg-slate-50 border border-slate-200 rounded-2xl p-4 sm:p-5 space-y-2.5 text-left">
+          <div class="flex items-center justify-between text-xs text-slate-600">
+            <span>預計開放查詢時間：</span>
+            <strong id="locked-release-time-display" class="text-slate-800 font-mono text-xs sm:text-sm">2026-11-30 08:00</strong>
+          </div>
+          <div class="flex items-center justify-between text-xs text-slate-600">
+            <span>距離開放倒數：</span>
+            <strong id="locked-countdown-display" class="text-amber-600 font-bold font-mono">-- 天 -- 小時 -- 分</strong>
+          </div>
+        </div>
+
+        <div class="max-w-xl mx-auto p-4 bg-blue-50/80 border border-blue-100 rounded-xl text-left text-xs text-blue-900 space-y-1.5">
+          <div class="flex items-center space-x-1.5 font-bold text-blue-950">
+            <svg class="w-4 h-4 text-blue-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>依據定期評量教育指引與法規規範：</span>
+          </div>
+          <p class="text-blue-800 leading-relaxed">
+            依據教育部及各縣市學生評量指引規範，<strong>放假前一日（如連假、週末放假前夕）原則上不公布或發送評量成績</strong>，以避免因成績波動影響連假期間家庭和睦及維護學生身心健康。成績將於排定之上課日上午準時開放查詢，敬請家長安心等候！
+          </p>
+        </div>
+
+        <div class="pt-2">
+          <button type="button" id="btn-switch-to-open-exam" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-5 py-2.5 rounded-xl transition shadow">
+            切換至其他已開放之考試項目
+          </button>
+        </div>
+      </div>
+
+      <!-- Dashboard Grades Content (KPIs, Tables, Charts) -->
+      <div id="dashboard-grades-content" class="space-y-6">
+
+        <!-- Child Single Score Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div class="flex items-center space-x-4">
+            <div class="w-14 h-14 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-2xl flex-shrink-0">
+              <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+            </div>
+            <div>
+              <div class="flex items-center space-x-2">
+                <span id="current-exam-title-badge" class="bg-indigo-100 text-indigo-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">第一次段考</span>
+              </div>
+              <h3 class="text-xl font-bold text-slate-800 mt-1">
+                <span id="parent-student-name">王小明 同學</span> 評量成績
+              </h3>
+              <p class="text-xs text-slate-500 mt-0.5">本系統僅呈現貴子弟本次得分與常態組距分佈，不作名次排名與極值比較</p>
+            </div>
+          </div>
+
+          <div class="flex items-baseline space-x-2 bg-indigo-50/80 border border-indigo-100 px-6 py-3.5 rounded-2xl self-start sm:self-auto">
+            <span class="text-xs font-semibold text-indigo-700">本次得分：</span>
+            <span id="single-subject-score" class="text-4xl font-extrabold text-indigo-600">--</span>
+            <span class="text-xs text-indigo-500 font-medium">分</span>
+          </div>
+        </div>
+
+        <!-- Class Distribution Histogram (班級組距分佈圖) -->
+        <div class="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <div class="flex items-center space-x-2">
+                <h3 class="text-base font-bold text-slate-800">班級成績組距分佈圖</h3>
+                <span id="chart-subject-tag" class="bg-indigo-100 text-indigo-700 text-xs px-2 py-0.5 rounded-full font-semibold">成績組距</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-1">
+                黃色柱狀 <span class="inline-block w-2.5 h-2.5 rounded-sm bg-amber-400 mx-1"></span> 代表貴子弟本次成績所在區間（各分數級距人數統計）
+              </p>
+            </div>
+            <div class="text-[11px] text-slate-400">
+              常態組距分析 • 保護個別隱私不標記排名
+            </div>
+          </div>
+
+          <!-- Chart Container -->
+          <div class="relative h-80 w-full">
+            <canvas id="class-distribution-chart"></canvas>
+          </div>
+
+          <div id="distribution-summary-note" class="p-3 bg-slate-50 rounded-xl text-xs text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <span>貴子弟所在組距區間：<strong id="student-bucket-label" class="text-indigo-600 font-bold">--</strong>（該區間共有 <strong id="student-in-bucket-count" class="text-indigo-600">--</strong> 位同學）</span>
+            <span class="text-slate-400 text-[11px]">遵循評量指引，不顯示全班最高最低分、平均及個人等第</span>
+          </div>
+        </div>
+
+      </div> <!-- /#dashboard-grades-content -->
+
+    </div>
+
+    <!-- ========================================== -->
+    <!-- VIEW 3: TEACHER ADMIN PANEL (教師後台管理) -->
+    <!-- ========================================== -->
+    <div id="view-teacher-admin" class="hidden space-y-6">
+
+      <!-- Admin Top Banner & Sub-Tabs -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+          <div class="flex items-center space-x-3">
+            <div class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+              </svg>
+            </div>
+            <div>
+              <h2 class="text-xl font-bold text-slate-800 flex items-center space-x-2">
+                <span>導師後台管理中心</span>
+                <span class="bg-emerald-100 text-emerald-800 text-xs px-2.5 py-0.5 rounded-full font-semibold">管理員已登入</span>
+              </h2>
+              <p class="text-xs text-slate-500 mt-0.5">維護學生名冊、座號、查詢密碼、錄入成績與即時查閱家長登入日誌</p>
+            </div>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <!-- 班級名稱即時設定 -->
+            <div class="flex items-center space-x-2 bg-indigo-50/90 border border-indigo-200/90 px-3 py-1.5 rounded-xl">
+              <label for="admin-class-name-input" class="text-xs font-bold text-indigo-900 flex-shrink-0">🏷️ 班級名稱：</label>
+              <input type="text" id="admin-class-name-input" class="bg-white border border-indigo-300 rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-indigo-500 w-28 sm:w-36" placeholder="例如：八年三班" value="八年三班">
+              <button type="button" id="btn-save-class-name" class="bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-semibold px-3 py-1 rounded-lg text-xs transition shadow-sm flex-shrink-0">
+                儲存班級
+              </button>
+            </div>
+            <button id="btn-admin-return-parent" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-medium px-4 py-2 rounded-xl text-xs sm:text-sm transition flex items-center space-x-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+              </svg>
+              <span>切換回學生查詢介面</span>
+            </button>
+            <button id="btn-admin-logout" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium px-3.5 py-2 rounded-xl text-xs sm:text-sm transition">
+              登出後台
+            </button>
+          </div>
+        </div>
+
+        <!-- Navigation Tabs inside Admin -->
+        <div class="flex flex-wrap gap-2 pt-4">
+          <button id="tab-btn-logs" class="admin-tab-btn active px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-indigo-600 text-white shadow-sm flex items-center space-x-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>家長查詢紀錄 (<span id="tab-log-badge">0</span>)</span>
+          </button>
+          <button id="tab-btn-grades" class="admin-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center space-x-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+            </svg>
+            <span>成績錄入與快速貼上</span>
+          </button>
+          <button id="tab-btn-students" class="admin-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center space-x-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+            <span>學生座號與密碼名冊</span>
+          </button>
+          <button id="tab-btn-schedule" class="admin-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center space-x-1.5">
+            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>成績開放排程 (防放假公布)</span>
+          </button>
+          <button id="tab-btn-gsheets" class="admin-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center space-x-1.5">
+            <svg class="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h10v2H7zm0 4h10v2H7zm0-8h10v2H7z"/>
+            </svg>
+            <span>Google 試算表即時連動</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- ADMIN TAB 1: ACCESS AUDIT LOGS (查詢紀錄)   -->
+      <!-- ========================================== -->
+      <div id="admin-panel-logs" class="admin-panel-content space-y-4">
+        <!-- Log Metrics -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <div class="text-xs text-slate-500 font-medium">總查詢次數</div>
+            <div id="metric-total-views" class="text-2xl font-bold text-slate-800 mt-1">0</div>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <div class="text-xs text-slate-500 font-medium">已查詢學生人數</div>
+            <div id="metric-unique-students" class="text-2xl font-bold text-indigo-600 mt-1">0</div>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <div class="text-xs text-slate-500 font-medium">家長查閱涵蓋率</div>
+            <div id="metric-view-rate" class="text-2xl font-bold text-emerald-600 mt-1">0%</div>
+          </div>
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <div class="text-xs text-slate-500 font-medium">未查詢學生人數</div>
+            <div id="metric-unviewed-students" class="text-2xl font-bold text-amber-600 mt-1">0</div>
+          </div>
+        </div>
+
+        <!-- Log List Card -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h3 class="text-base font-bold text-slate-800">每位學生成績查詢詳細歷程</h3>
+              <p class="text-xs text-slate-500">系統即時記錄家長登入座號、查看考試、精確查詢時間與裝置</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <input type="text" id="filter-log-input" placeholder="搜尋座號、姓名或考試..." class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 w-44 sm:w-56">
+              <button id="btn-export-logs-csv" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                <span>匯出 CSV</span>
+              </button>
+              <button id="btn-clear-logs" class="bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition">
+                清空日誌
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto max-h-[460px] custom-scrollbar">
+            <table class="w-full text-left text-sm border-collapse">
+              <thead class="sticky top-0 bg-slate-50 border-b border-slate-200 text-slate-500 text-xs">
+                <tr>
+                  <th class="py-2.5 px-4">#</th>
+                  <th class="py-2.5 px-4">座號</th>
+                  <th class="py-2.5 px-4">學生姓名</th>
+                  <th class="py-2.5 px-4">查看之考試項目</th>
+                  <th class="py-2.5 px-4">查詢時間 (Timestamp)</th>
+                  <th class="py-2.5 px-4">狀態</th>
+                </tr>
+              </thead>
+              <tbody id="logs-tbody" class="divide-y divide-slate-100 text-xs">
+                <!-- Populated by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- ADMIN TAB 2: GRADE INPUT & QUICK PASTE    -->
+      <!-- ========================================== -->
+      <div id="admin-panel-grades" class="admin-panel-content hidden space-y-6">
+
+        <!-- 1. All Uploaded Exams Overview Card (瀏覽與管理歷次上傳成績) -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <h3 class="text-base font-bold text-slate-800 flex items-center space-x-2">
+                <span>歷次上傳考試成績總覽與管理</span>
+                <span id="admin-exams-count-badge" class="bg-indigo-100 text-indigo-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">共 3 次評量</span>
+              </h3>
+              <p class="text-xs text-slate-500 mt-0.5">老師可在此瀏覽歷次上傳之所有成績，點擊「編輯成績」或「刪除紀錄」進行管理</p>
+            </div>
+            <a href="#admin-create-exam-card" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold px-3.5 py-1.5 rounded-lg text-xs transition flex items-center space-x-1 self-start sm:self-auto">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+              </svg>
+              <span>建立/貼上新考試</span>
+            </a>
+          </div>
+
+          <!-- Exams History Table -->
+          <div class="overflow-x-auto border border-slate-200 rounded-xl custom-scrollbar">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                <tr>
+                  <th class="py-2.5 px-4">考試項目名稱</th>
+                  <th class="py-2.5 px-4">評量日期</th>
+                  <th class="py-2.5 px-4">已上傳人數</th>
+                  <th class="py-2.5 px-4">開放家長查詢時間</th>
+                  <th class="py-2.5 px-4">目前狀態</th>
+                  <th class="py-2.5 px-4 text-center">操作功能</th>
+                </tr>
+              </thead>
+              <tbody id="admin-exams-overview-tbody" class="divide-y divide-slate-100 font-medium">
+                <!-- Rendered by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 2. Live Grade Editor Table with active exam dropdown & quick delete -->
+        <div id="admin-live-editor-section" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="p-4 sm:p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <div class="flex items-center space-x-2">
+                <h3 class="text-base font-bold text-slate-800">線上成績檢視與即時修改</h3>
+                <span id="admin-editing-exam-label" class="bg-indigo-100 text-indigo-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">第一次段考</span>
+              </div>
+              <p class="text-xs text-slate-500 mt-0.5">點擊下方任一學生成績直接線上修改，隨改即存；亦可由右側選單快速切換欲查看的考試</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <div class="relative">
+                <select id="admin-active-exam-select" class="appearance-none bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 pr-8 text-xs font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                  <!-- Populated by JS -->
+                </select>
+                <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </div>
+              </div>
+              <button id="btn-delete-active-exam" class="bg-rose-50 hover:bg-rose-100 text-rose-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                <span>刪除此考試</span>
+              </button>
+              <button id="btn-save-all-table-grades" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">
+                儲存目前表格所有修改
+              </button>
+              <button id="btn-export-grades-csv" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-semibold transition">
+                匯出成績 CSV
+              </button>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto max-h-[460px] custom-scrollbar">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="sticky top-0 bg-slate-50 border-b border-slate-200 text-slate-500">
+                <tr>
+                  <th class="py-2.5 px-4">座號</th>
+                  <th class="py-2.5 px-4">姓名</th>
+                  <th class="py-2.5 px-4">本次考試成績 (可線上修改)</th>
+                </tr>
+              </thead>
+              <tbody id="admin-grades-tbody" class="divide-y divide-slate-100 font-medium">
+                <!-- Rendered by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 3. Create Exam & Quick Paste Card -->
+        <div id="admin-create-exam-card" class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+            <div>
+              <h3 class="text-base font-bold text-slate-800 flex items-center space-x-2">
+                <span>建立新考試並極速貼上成績（支援 Google 試算表 / Excel 複製）</span>
+                <span class="bg-blue-100 text-blue-700 text-[11px] px-2 py-0.5 rounded font-semibold">快速建立</span>
+              </h3>
+              <p class="text-xs text-slate-500 mt-0.5">您在 Google 試算表或 Excel 選取成績表格按 <kbd class="bg-slate-100 px-1 rounded border">Ctrl+C</kbd>，直接貼在下方文字框按「解析並儲存」即可完成上傳！</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button id="btn-load-sample-grade-paste" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold bg-indigo-50 px-2.5 py-1.5 rounded-lg transition">
+                載入貼上範例格式
+              </button>
+            </div>
+          </div>
+
+          <!-- Create Exam Input for Paste -->
+          <div class="bg-slate-50 border border-slate-200 p-4 rounded-xl">
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+              <div class="sm:col-span-5">
+                <label for="new-exam-name-input" class="block text-xs font-semibold text-slate-700 mb-1">新考試名稱：</label>
+                <input type="text" id="new-exam-name-input" placeholder="請輸入考試名稱 (例如：期中考、第2次段考...)" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-indigo-500" value="第二次段考">
+              </div>
+              <div class="sm:col-span-4">
+                <label for="new-exam-release-input" class="block text-xs font-semibold text-slate-700 mb-1">開放家長查詢時間 (避開休假前夕)：</label>
+                <input type="datetime-local" id="new-exam-release-input" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+              </div>
+              <div class="sm:col-span-3">
+                <button type="button" id="btn-add-new-exam" class="w-full bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white py-2 rounded-xl text-xs font-semibold transition shadow flex items-center justify-center space-x-1.5">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                  </svg>
+                  <span>新增考試</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Paste Textarea -->
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <label for="grade-paste-textarea" class="text-xs font-semibold text-slate-700">貼上試算表文字 (欄位順序：座號 姓名 成績)：</label>
+              <span class="text-[11px] text-slate-400">支援 Tab 分隔或逗號分隔 (CSV)，無需分科目</span>
+            </div>
+            <textarea id="grade-paste-textarea" rows="5" placeholder="座號	姓名	成績&#10;1	王小明	88&#10;2	李小華	92&#10;3	張大維	75" class="w-full font-mono text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition custom-scrollbar"></textarea>
+          </div>
+
+          <div class="flex items-center justify-between">
+            <span id="paste-parse-status" class="text-xs text-slate-500"></span>
+            <button id="btn-parse-and-apply-grades" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2.5 rounded-xl text-xs sm:text-sm shadow transition flex items-center space-x-1.5">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+              </svg>
+              <span>解析並儲存該次考試成績</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ========================================== -->
+      <!-- ADMIN TAB 3: STUDENT ROSTER & PASSWORDS    -->
+      <!-- ========================================== -->
+      <div id="admin-panel-students" class="admin-panel-content hidden space-y-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <h3 class="text-base font-bold text-slate-800">學生座號與家長登入密碼管理</h3>
+              <p class="text-xs text-slate-500 mt-0.5">可在此設定每位學生的座號、姓名及查詢密碼（待您提供名單後可直接批次覆蓋）</p>
+            </div>
+            <div class="flex items-center space-x-2">
+              <button id="btn-show-add-student-modal" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition flex items-center space-x-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                <span>新增單一學生</span>
+              </button>
+              <button id="btn-batch-reset-pwd" class="bg-amber-50 hover:bg-amber-100 text-amber-800 px-3 py-1.5 rounded-lg text-xs font-semibold transition">
+                批次重設密碼
+              </button>
+            </div>
+          </div>
+
+          <!-- Batch Import Students Text Area -->
+          <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-700">批次匯入/替換學生名冊與密碼：</span>
+              <span class="text-[11px] text-slate-400">格式：座號 [空格/Tab/逗點] 姓名 [空格/Tab/逗點] 密碼</span>
+            </div>
+            <textarea id="batch-students-textarea" rows="4" placeholder="1	王小明	1234&#10;2	李小華	1234&#10;3	張大維	5678" class="w-full font-mono text-xs p-2.5 bg-white border border-slate-300 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 custom-scrollbar"></textarea>
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-slate-500">您後續拿到學生座號密碼後，貼上此處點擊右側按鈕即可一鍵覆蓋！</span>
+              <button id="btn-apply-batch-students" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-4 py-2 rounded-lg transition">
+                套用並覆蓋學生名冊
+              </button>
+            </div>
+          </div>
+
+          <!-- Student List Table -->
+          <div class="overflow-x-auto max-h-[460px] custom-scrollbar border border-slate-200 rounded-xl">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="sticky top-0 bg-slate-100 text-slate-600 border-b border-slate-200 font-semibold">
+                <tr>
+                  <th class="py-2.5 px-4">座號</th>
+                  <th class="py-2.5 px-4">學生姓名</th>
+                  <th class="py-2.5 px-4">查詢密碼</th>
+                  <th class="py-2.5 px-4">最近查詢次數</th>
+                  <th class="py-2.5 px-4 text-center">操作</th>
+                </tr>
+              </thead>
+              <tbody id="student-roster-tbody" class="divide-y divide-slate-100 font-medium">
+                <!-- Rendered by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+<!-- ========================================== -->
+      <!-- ADMIN TAB 5: EXAM RELEASE SCHEDULE (開放時間排程) -->
+      <!-- ========================================== -->
+      <div id="admin-panel-schedule" class="admin-panel-content hidden space-y-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6 space-y-5">
+          <div class="border-b border-slate-100 pb-4">
+            <div class="flex items-center space-x-2">
+              <h3 class="text-base font-bold text-slate-800">各次考試開放家長查詢時間排程</h3>
+              <span class="bg-amber-100 text-amber-800 text-xs px-2.5 py-0.5 rounded-full font-semibold">放假前不公布保護機制</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">設定每場定期評量成績之開放時間。系統自動比對，避免於週五或假日前夕發布成績，維護學生假期身心健康。</p>
+          </div>
+
+          <!-- Legal & Pedagogical Guideline Card -->
+          <div class="p-4 bg-amber-50/80 border border-amber-200 rounded-xl space-y-2 text-xs text-amber-900">
+            <div class="flex items-center space-x-2 font-bold text-amber-950">
+              <svg class="w-4 h-4 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span>教育部與教育局法規指引：「放假前一日不公布成績」</span>
+            </div>
+            <p class="leading-relaxed text-amber-850">
+              依《國民小學及國民中學學生成績評量準則》及各縣市學生評量指引，定期評量結果<strong>不得於連續假期、寒暑假或例假日前一日發送或線上開放</strong>，以防學生因成績波動而在缺乏學校師長支持之假期引發嚴重親職衝突或負向情緒。建議老師將開放時間預約於<strong>放假結束後之上課日（如週一上午 08:00）</strong>。
+            </p>
+          </div>
+
+          <!-- Schedule Table -->
+          <div class="overflow-x-auto border border-slate-200 rounded-xl custom-scrollbar">
+            <table class="w-full text-left border-collapse text-xs">
+              <thead class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                <tr>
+                  <th class="py-3 px-4">考試項目</th>
+                  <th class="py-3 px-4">評量日期</th>
+                  <th class="py-3 px-4">開放家長查詢時間 (可調整)</th>
+                  <th class="py-3 px-4">目前查詢狀態</th>
+                  <th class="py-3 px-4 text-center">快捷調控</th>
+                </tr>
+              </thead>
+              <tbody id="schedule-exams-tbody" class="divide-y divide-slate-100 font-medium">
+                <!-- Rendered by JS -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- ADMIN TAB 4: GOOGLE SHEETS SYNC GUIDE      -->
+      <!-- ========================================== -->
+      <div id="admin-panel-gsheets" class="admin-panel-content hidden space-y-6">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 sm:p-6 space-y-4">
+          <div class="border-b border-slate-100 pb-3">
+            <h3 class="text-base font-bold text-slate-800 flex items-center space-x-2">
+              <span>Google 試算表 (Google Sheets) 雲端連動設定</span>
+              <span class="bg-emerald-100 text-emerald-800 text-xs px-2 py-0.5 rounded font-semibold">推薦架構</span>
+            </h3>
+            <p class="text-xs text-slate-500 mt-0.5">老師只要在 Google 試算表打成績，家長查詢端自動獲取最新分數，無需再次上傳！</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Left: GAS Web App URL input -->
+            <div class="space-y-4">
+              <div class="p-4 bg-emerald-50/70 border border-emerald-100 rounded-xl space-y-3">
+                <h4 class="text-xs font-bold text-emerald-900 uppercase tracking-wider">即時串接 Google 試算表 API</h4>
+                <p class="text-xs text-emerald-800">
+                  若您已建立 Google 試算表並部署為 Web 應用程式 (Web App)，請將產生的網址貼在下方：
+                </p>
+                <div>
+                  <label for="gsheet-api-url-input" class="block text-xs font-semibold text-slate-700 mb-1">Google Apps Script Web App URL：</label>
+                  <input type="url" id="gsheet-api-url-input" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-white border border-slate-300 rounded-lg p-2 text-xs font-mono outline-none focus:ring-2 focus:ring-emerald-500">
+                </div>
+                <div class="flex items-center space-x-2">
+                  <button id="btn-save-gsheet-url" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-lg text-xs transition">
+                    儲存連線網址
+                  </button>
+                  <button id="btn-test-gsheet-sync" class="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 font-semibold px-4 py-2 rounded-lg text-xs transition">
+                    測試並同步最新成績
+                  </button>
+                </div>
+                <div id="gsheet-sync-status" class="text-xs font-medium text-slate-600"></div>
+              </div>
+
+              <!-- Backup & Restore LocalStorage -->
+              <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                <h4 class="text-xs font-bold text-slate-700">本機備份與還原 (JSON 格式)</h4>
+                <p class="text-xs text-slate-500">包含所有名冊、考試成績及家長查詢日誌，可一鍵下載留存。</p>
+                <div class="flex items-center space-x-2 pt-1">
+                  <button id="btn-backup-download" class="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                    下載完整資料備份 (.json)
+                  </button>
+                  <label class="bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition">
+                    還原備份
+                    <input type="file" id="file-restore-input" accept=".json" class="hidden">
+                  </label>
+                  <button id="btn-reset-demo-data" class="bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold px-3 py-1.5 rounded-lg transition">
+                    重置為示範資料
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: GAS Script Code Example -->
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-slate-700">3 步驟完成 Google 試算表免費雲端串接：</span>
+                <button id="btn-copy-gas-code" class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold bg-indigo-50 px-2 py-1 rounded">
+                  複製 GAS 代碼
+                </button>
+              </div>
+              <ol class="text-xs text-slate-600 space-y-2 list-decimal list-inside bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <li>在 Google 雲端硬碟新增一份 Google 試算表，第一列放欄位標題：<code class="bg-slate-200 px-1 py-0.5 rounded text-[11px]">座號, 姓名, 密碼, 國文, 英文, 數學, 自然, 社會</code>。</li>
+                <li>點擊上方選單<strong>「擴充功能」</strong> &rarr; <strong>「Apps Script」</strong>，將下方代碼複製貼上並儲存。</li>
+                <li>點擊右上角<strong>「部署」</strong> &rarr; <strong>「新增部署作業」</strong>，類型選「網路應用程式」，存取權限選<strong>「任何人 (Anyone)」</strong>，將取得的網址貼回左側欄位即完成！</li>
+              </ol>
+
+              <div class="relative">
+                <pre id="gas-code-block" class="bg-slate-900 text-slate-200 text-[11px] font-mono p-3 rounded-xl overflow-x-auto max-h-56 custom-scrollbar">function doGet(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var result = [];
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) {
+      obj[headers[j]] = row[j];
+    }
+    result.push(obj);
+  }
+  return ContentService.createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+    <!-- ========================================== -->
+  <!-- MODAL: CONFIRM DELETE EXAM                 -->
+  <!-- ========================================== -->
+  <div id="modal-delete-exam-confirm" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 text-center space-y-4">
+      <div class="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+        </svg>
+      </div>
+      <div>
+        <h3 class="text-base font-bold text-slate-800">確定要刪除這筆考試成績？</h3>
+        <p class="text-xs text-slate-500 mt-1">您即將刪除「<span id="delete-exam-target-name" class="font-bold text-slate-800">--</span>」及其所有學生成績。此動作無法復原！</p>
+      </div>
+      <div class="flex space-x-2 pt-2">
+        <button type="button" id="btn-cancel-delete-exam" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition">
+          取消
+        </button>
+        <button type="button" id="btn-confirm-delete-exam" class="w-1/2 bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow">
+          確認刪除
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADMIN LOGIN (管理員進入後台彈窗)    -->
+  <!-- ========================================== -->
+  <div id="modal-admin-login" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 relative">
+      <button type="button" id="btn-close-admin-login-modal" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+
+      <div class="text-center mb-5">
+        <div class="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-2">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </div>
+        <h3 class="text-lg font-bold text-slate-800">教師管理員驗證</h3>
+        <p class="text-xs text-slate-500 mt-0.5">預設管理員密碼為：<code class="bg-slate-100 text-indigo-700 px-1.5 py-0.5 rounded font-mono font-bold">admin888</code></p>
+      </div>
+
+      <form id="form-admin-auth" class="space-y-4">
+        <div>
+          <label for="admin-pin-input" class="block text-xs font-semibold text-slate-700 mb-1">請輸入管理密碼：</label>
+          <input type="password" id="admin-pin-input" placeholder="請輸入密碼 (預設 admin888)" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500" autocomplete="current-password">
+        </div>
+        <div id="admin-auth-error" class="hidden text-xs text-rose-600 bg-rose-50 p-2 rounded-lg font-medium"></div>
+        <div class="flex space-x-2">
+          <button type="button" id="btn-cancel-admin-modal" class="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 rounded-xl text-xs transition">
+            取消
+          </button>
+          <button type="submit" class="w-2/3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow">
+            確認進入後台
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- MODAL: ADD / EDIT SINGLE STUDENT           -->
+  <!-- ========================================== -->
+  <div id="modal-student-edit" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-100 relative">
+      <button type="button" id="btn-close-student-edit-modal" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+      <h3 id="student-modal-title" class="text-base font-bold text-slate-800 mb-4">新增單一學生</h3>
+      <form id="form-student-save" class="space-y-3 text-xs">
+        <div>
+          <label for="modal-seat-input" class="block font-semibold text-slate-700 mb-1">座號 (數字)：</label>
+          <input type="number" id="modal-seat-input" min="1" max="100" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 outline-none focus:ring-2 focus:ring-indigo-500" required>
+        </div>
+        <div>
+          <label for="modal-name-input" class="block font-semibold text-slate-700 mb-1">學生姓名：</label>
+          <input type="text" id="modal-name-input" placeholder="例如：陳大明" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 outline-none focus:ring-2 focus:ring-indigo-500" required>
+        </div>
+        <div>
+          <label for="modal-pwd-input" class="block font-semibold text-slate-700 mb-1">家長登入密碼：</label>
+          <input type="text" id="modal-pwd-input" placeholder="例如：1234 或 生日" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 outline-none focus:ring-2 focus:ring-indigo-500 font-mono" required>
+        </div>
+        <div class="pt-2 flex space-x-2">
+          <button type="button" id="btn-cancel-student-modal" class="w-1/2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 rounded-lg transition">
+            取消
+          </button>
+          <button type="submit" class="w-1/2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition">
+            儲存學生
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="bg-white border-t border-slate-200 mt-auto py-6 text-center text-xs text-slate-400">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+      <div class="flex items-center space-x-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span>學生成績查詢系統 • 支援 Google 試算表雲端同步與查詢日誌存證</span>
+      </div>
+      <div>班級導師處提供 • 家長帳號資訊受隱私防護保護</div>
+    </div>
+  </footer>
+
+  <!-- ========================================== -->
+  <!-- APPLICATION LOGIC SCRIPT                   -->
+  <!-- ========================================== -->
+  <script>
+    // -------------------------------------------------------------
+    // DATA MODEL & STATE
+    // -------------------------------------------------------------
+    const STORAGE_KEY_STUDENTS = 'GRADE_SYS_STUDENTS_V1';
+    const STORAGE_KEY_EXAMS = 'GRADE_SYS_EXAMS_V1';
+    const STORAGE_KEY_LOGS = 'GRADE_SYS_LOGS_V1';
+    const STORAGE_KEY_CONFIG = 'GRADE_SYS_CONFIG_V1';
+
+    // Default 30 mock students
+    const DEFAULT_STUDENTS = [
+      { seat: 1, name: '王小明', password: '5621' },
+      { seat: 2, name: '李小華', password: '3842' },
+      { seat: 3, name: '張大維', password: '7190' },
+      { seat: 4, name: '陳美玲', password: '8314' },
+      { seat: 5, name: '林志豪', password: '2905' },
+      { seat: 6, name: '黃詩涵', password: '6471' },
+      { seat: 7, name: '吳冠宇', password: '1839' },
+      { seat: 8, name: '蔡欣怡', password: '9204' },
+      { seat: 9, name: '楊承恩', password: '4518' },
+      { seat: 10, name: '許家豪', password: '7362' },
+      { seat: 11, name: '鄭雅婷', password: '8129' },
+      { seat: 12, name: '謝宗翰', password: '3940' },
+      { seat: 13, name: '郭宜君', password: '5283' },
+      { seat: 14, name: '洪子軒', password: '6715' },
+      { seat: 15, name: '邱柏宇', password: '9402' },
+      { seat: 16, name: '曾佩琪', password: '1578' },
+      { seat: 17, name: '廖建宏', password: '4831' },
+      { seat: 18, name: '賴俊彥', password: '2964' },
+      { seat: 19, name: '徐雅筑', password: '7305' },
+      { seat: 20, name: '周宇翔', password: '8149' },
+      { seat: 21, name: '葉佳穎', password: '3620' },
+      { seat: 22, name: '蘇俊傑', password: '9514' },
+      { seat: 23, name: '莊宛婷', password: '4287' },
+      { seat: 24, name: '江育廷', password: '6731' },
+      { seat: 25, name: '何家瑋', password: '5190' },
+      { seat: 26, name: '潘思妤', password: '8406' },
+      { seat: 27, name: '彭聖凱', password: '2739' },
+      { seat: 28, name: '馬庭萱', password: '3615' },
+      { seat: 29, name: '簡佑丞', password: '9082' },
+      { seat: 30, name: '盧品妤', password: '4173' }
+    ];
+
+    const SUBJECT_KEYS = ['chinese', 'english', 'math', 'science', 'social'];
+    const SUBJECT_NAMES = {
+      chinese: '國文',
+      english: '英文',
+      math: '數學',
+      science: '自然',
+      social: '社會'
+    };
+
+    // Realistic score generator helper
+    function generateScoresForStudent(seat, examFactor = 0) {
+      // Base score variance based on student seed
+      const base = 65 + ((seat * 17) % 30);
+      return {
+        chinese: Math.min(100, Math.max(45, base + ((seat * 7 + examFactor) % 15) - 3)),
+        english: Math.min(100, Math.max(40, base + ((seat * 11 + examFactor) % 20) - 6)),
+        math: Math.min(100, Math.max(35, base + ((seat * 13 + examFactor) % 25) - 8)),
+        science: Math.min(100, Math.max(45, base + ((seat * 5 + examFactor) % 18) - 4)),
+        social: Math.min(100, Math.max(50, base + ((seat * 9 + examFactor) % 16) - 2))
+      };
+    }
+
+    // Default 3 exams with release time configuration
+    const DEFAULT_EXAMS = [
+      {
+        id: 'exam_1',
+        title: '第一次段考',
+        date: '2026-10-15',
+        releaseTime: '2026-10-15T08:00',
+        isLocked: false,
+        grades: {}
+      },
+      {
+        id: 'exam_2',
+        title: '第二次段考',
+        date: '2026-11-28',
+        releaseTime: '2026-11-30T08:00',
+        isLocked: false,
+        grades: {}
+      },
+      {
+        id: 'exam_3',
+        title: '第一次模擬考',
+        date: '2026-12-20',
+        releaseTime: '2026-12-22T08:00',
+        isLocked: false,
+        grades: {}
+      }
+    ];
+
+    function generateScoreForStudent(seat, factor = 0) {
+      const base = 68 + ((seat * 19) % 28);
+      return Math.min(100, Math.max(45, base + factor));
+    }
+
+    DEFAULT_STUDENTS.forEach((st) => {
+      DEFAULT_EXAMS[0].grades[st.seat] = generateScoreForStudent(st.seat, 0);
+      DEFAULT_EXAMS[1].grades[st.seat] = generateScoreForStudent(st.seat, 4);
+      DEFAULT_EXAMS[2].grades[st.seat] = generateScoreForStudent(st.seat, 6);
+    });
+
+    function getStudentScore(exam, seat) {
+      if (!exam || !exam.grades) return 0;
+      const val = exam.grades[seat];
+      if (typeof val === 'number') return val;
+      if (typeof val === 'object' && val !== null) {
+        if (val.score !== undefined) return Number(val.score);
+        if (val.chinese !== undefined) return Number(val.chinese);
+      }
+      const n = Number(val);
+      return isNaN(n) ? 0 : n;
+    }
+
+    const DEFAULT_CONFIG = {
+      adminPin: 'admin888',
+      classTitle: '八年三班 學生學業成績查詢系統',
+      gsheetUrl: ''
+    };
+
+    // Global in-memory state
+    let state = {
+      students: [],
+      exams: [],
+      logs: [],
+      config: {},
+      currentParentStudent: null,
+      selectedExamId: null,
+      selectedChartSubject: 'total', // 'total' or subject key
+      isAdmin: false
+    };
+
+    // Chart instances
+    let distributionChart = null;
+    let radarChart = null;
+
+    // -------------------------------------------------------------
+    // INITIALIZATION & LOCAL STORAGE
+    // -------------------------------------------------------------
+    
+    // -------------------------------------------------------------
+    // CLASS TITLE CUSTOMIZATION (班級名稱自訂)
+    // -------------------------------------------------------------
+    function applyClassName(name) {
+      const cleanName = (name && name.trim()) || '八年三班';
+      state.config.className = cleanName;
+      state.config.classTitle = `${cleanName} 學生成績查詢系統`;
+
+      const titleElem = document.getElementById('site-title-display');
+      if (titleElem) titleElem.textContent = `${cleanName} 學生成績查詢系統`;
+
+      const subElem = document.getElementById('site-subtitle-display');
+      if (subElem) subElem.textContent = `${cleanName} 家長即時專區與班級組距分析`;
+
+      const inputElem = document.getElementById('admin-class-name-input');
+      if (inputElem && inputElem.value !== cleanName) inputElem.value = cleanName;
+
+      document.title = `${cleanName} 學生成績查詢系統與後台管理`;
+    }
+
+    function loadState() {
+      try {
+        const storedStudents = localStorage.getItem(STORAGE_KEY_STUDENTS);
+        state.students = storedStudents ? JSON.parse(storedStudents) : JSON.parse(JSON.stringify(DEFAULT_STUDENTS));
+
+        const storedExams = localStorage.getItem(STORAGE_KEY_EXAMS);
+        state.exams = storedExams ? JSON.parse(storedExams) : JSON.parse(JSON.stringify(DEFAULT_EXAMS));
+
+        const storedLogs = localStorage.getItem(STORAGE_KEY_LOGS);
+        state.logs = storedLogs ? JSON.parse(storedLogs) : [];
+
+        const storedConfig = localStorage.getItem(STORAGE_KEY_CONFIG);
+        state.config = storedConfig ? JSON.parse(storedConfig) : JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+        applyClassName(state.config.className || (state.config.classTitle ? state.config.classTitle.replace(' 學生學業成績查詢系統', '').replace(' 學生成績查詢系統', '') : '八年三班'));
+      } catch (e) {
+        console.warn('LocalStorage error, using defaults:', e);
+        state.students = JSON.parse(JSON.stringify(DEFAULT_STUDENTS));
+        state.exams = JSON.parse(JSON.stringify(DEFAULT_EXAMS));
+        state.logs = [];
+        state.config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+      }
+
+      if (state.exams.length > 0 && !state.selectedExamId) {
+        state.selectedExamId = state.exams[0].id;
+      }
+    }
+
+    
+    // -------------------------------------------------------------
+    // FIREBASE CLOUD FIRESTORE SYNCHRONIZATION
+    // -------------------------------------------------------------
+    // 當由 Antigravity 或老師填入 Firebase 金鑰後，系統自動升級為跨裝置雲端即時同步
+    const firebaseConfig = {
+      apiKey: "AIzaSyAREW9aC38_zbVixDOXWPcnm6R6vgmdQBE",
+      authDomain: "grade-system-103.firebaseapp.com",
+      projectId: "grade-system-103",
+      storageBucket: "grade-system-103.firebasestorage.app",
+      messagingSenderId: "233712058165",
+      appId: "1:233712058165:web:7add75a4574e234eebd67c"
+    };
+
+    let firestoreDb = null;
+    let isFirebaseActive = false;
+
+    function initFirebase() {
+      const statusChip = document.getElementById('firebase-cloud-status');
+      try {
+        if (typeof firebase !== 'undefined' && firebaseConfig.projectId && firebaseConfig.projectId !== "YOUR_PROJECT_ID") {
+          firebase.initializeApp(firebaseConfig);
+          firestoreDb = firebase.firestore();
+          isFirebaseActive = true;
+          if (statusChip) {
+            statusChip.className = 'hidden sm:inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-800/80 text-emerald-200 border border-emerald-500/50';
+            statusChip.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 mr-1.5 animate-pulse"></span><span>☁️ Firebase 雲端同步</span>';
+          }
+          setupFirestoreRealtimeListener();
+          console.log('Firebase Cloud Firestore successfully connected!');
+        } else {
+          isFirebaseActive = false;
+          if (statusChip) {
+            statusChip.className = 'hidden sm:inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full bg-indigo-800 text-indigo-200 border border-indigo-600/50';
+            statusChip.innerHTML = '<span>💾 本機模式 (待填金鑰)</span>';
+          }
+        }
+      } catch (err) {
+        console.warn('Firebase init error, fallback to LocalStorage:', err);
+        isFirebaseActive = false;
+      }
+    }
+
+    function setupFirestoreRealtimeListener() {
+      if (!firestoreDb) return;
+      firestoreDb.collection('grade_system').doc('main_data').onSnapshot((doc) => {
+        if (doc.exists) {
+          const data = doc.data();
+          if (data.students && Array.isArray(data.students)) state.students = data.students;
+          if (data.exams && Array.isArray(data.exams)) state.exams = data.exams;
+          if (data.logs && Array.isArray(data.logs)) state.logs = data.logs;
+          if (data.config) state.config = data.config;
+          applyClassName(state.config.className || '八年三班');
+          populateSeatSelect();
+          populateExamSelects();
+          if (state.currentParentStudent) renderParentDashboard();
+          if (state.isAdmin) {
+            renderLogsTable();
+            updateLogMetrics();
+            renderAdminExamsOverview();
+            renderAdminGradesTable();
+            renderStudentsRosterTable();
+            renderScheduleTable();
+          }
+        }
+      }, (err) => {
+        console.warn('Firestore onSnapshot listener notice:', err);
+      });
+    }
+
+    function syncStateToFirestore() {
+      if (!isFirebaseActive || !firestoreDb) return;
+      try {
+        firestoreDb.collection('grade_system').doc('main_data').set({
+          students: state.students,
+          exams: state.exams,
+          logs: state.logs,
+          config: state.config,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true }).catch((err) => {
+          console.warn('Failed to sync to Firestore:', err);
+        });
+      } catch (e) {
+        console.warn('Firestore write error:', e);
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(state.students));
+        localStorage.setItem(STORAGE_KEY_EXAMS, JSON.stringify(state.exams));
+        localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(state.logs));
+        localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(state.config));
+        syncStateToFirestore();
+      } catch (e) {
+        console.warn('Failed to save state to localStorage:', e);
+      }
+    }
+
+    // -------------------------------------------------------------
+    // TOAST NOTIFICATIONS (Safe replacement for alert)
+    // -------------------------------------------------------------
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      toast.className = 'pointer-events-auto transform transition-all duration-300 ease-out translate-y-2 opacity-0 flex items-center p-3.5 rounded-xl shadow-lg border max-w-sm text-xs font-medium';
+
+      if (type === 'success') {
+        toast.className += ' bg-emerald-50 text-emerald-900 border-emerald-200';
+        toast.innerHTML = `<svg class="w-4 h-4 text-emerald-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg><span>${escapeHtml(message)}</span>`;
+      } else if (type === 'error') {
+        toast.className += ' bg-rose-50 text-rose-900 border-rose-200';
+        toast.innerHTML = `<svg class="w-4 h-4 text-rose-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg><span>${escapeHtml(message)}</span>`;
+      } else {
+        toast.className += ' bg-indigo-50 text-indigo-900 border-indigo-200';
+        toast.innerHTML = `<svg class="w-4 h-4 text-indigo-600 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>${escapeHtml(message)}</span>`;
+      }
+
+      container.appendChild(toast);
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function formatSeat(num) {
+      return String(num).padStart(2, '0');
+    }
+
+    function getNowTimestamp() {
+      const d = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+
+    // -------------------------------------------------------------
+    // LOGGING SYSTEM (學生成績查詢紀錄)
+    // -------------------------------------------------------------
+    function recordAccessLog(student, examTitle) {
+      const now = getNowTimestamp();
+      const currentExam = state.exams.find((e) => e.id === state.selectedExamId);
+      const isCurrentlyOpen = currentExam ? isExamOpen(currentExam) : true;
+      const logEntry = {
+        id: 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
+        timestamp: now,
+        seat: student.seat,
+        name: student.name,
+        examTitle: examTitle,
+        device: navigator.userAgent.includes('Mobile') ? '手機/平板' : '電腦瀏覽器',
+        status: isCurrentlyOpen ? '查詢成功' : '尚未開放 (保護攔截)'
+      };
+
+      state.logs.unshift(logEntry);
+      // Keep up to 2000 log records
+      if (state.logs.length > 2000) state.logs.pop();
+      saveState();
+      renderLogsTable();
+      updateLogMetrics();
+    }
+
+    function getLastLogForStudent(seat) {
+      // Find the second most recent log (since the most recent is right now)
+      const studentLogs = state.logs.filter((l) => l.seat === seat);
+      if (studentLogs.length > 1) {
+        return studentLogs[1].timestamp;
+      }
+      return '首次登入查詢';
+    }
+
+    // -------------------------------------------------------------
+    // CALCULATIONS: STATS, RANKS & BUCKETS
+    // -------------------------------------------------------------
+    // -------------------------------------------------------------
+    // EXAM RELEASE & HOLIDAY RESTRICTION HELPERS
+    // -------------------------------------------------------------
+    function isExamOpen(exam) {
+      if (!exam) return false;
+      if (exam.isLocked) return false;
+      if (!exam.releaseTime) return true;
+      const now = new Date();
+      const start = new Date(exam.releaseTime);
+      return now >= start;
+    }
+
+    function formatCountdown(diffMs) {
+      if (diffMs <= 0) return '即將開放';
+      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+      if (days > 0) {
+        return `${days} 天 ${hours} 小時 ${mins} 分鐘`;
+      }
+      return `${hours} 小時 ${mins} 分鐘`;
+    }
+
+    function getExamStatusInfo(exam) {
+      if (!exam) return { isOpen: false, text: '未知', badgeClass: 'bg-slate-100 text-slate-600', isHolidayRisk: false };
+      if (exam.isLocked) {
+        return {
+          isOpen: false,
+          text: '已鎖定 (暫停家長查詢)',
+          badgeClass: 'bg-rose-50 text-rose-700 border border-rose-200',
+          isHolidayRisk: false,
+          releaseStr: exam.releaseTime ? exam.releaseTime.replace('T', ' ') : '尚未設定'
+        };
+      }
+      if (!exam.releaseTime) {
+        return {
+          isOpen: true,
+          text: '已全面開放',
+          badgeClass: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+          isHolidayRisk: false,
+          releaseStr: '即刻開放'
+        };
+      }
+      const now = new Date();
+      const start = new Date(exam.releaseTime);
+      const isFriday = start.getDay() === 5;
+      const isWeekend = start.getDay() === 0 || start.getDay() === 6;
+      const isHolidayRisk = isFriday || isWeekend;
+
+      if (now < start) {
+        const diff = start - now;
+        return {
+          isOpen: false,
+          text: `尚未開放 (${exam.releaseTime.replace('T', ' ')})`,
+          badgeClass: 'bg-amber-50 text-amber-700 border border-amber-200',
+          remainingStr: formatCountdown(diff),
+          releaseStr: exam.releaseTime.replace('T', ' '),
+          isHolidayRisk: isHolidayRisk
+        };
+      } else {
+        return {
+          isOpen: true,
+          text: '開放查詢中',
+          badgeClass: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
+          remainingStr: '已開放',
+          releaseStr: exam.releaseTime.replace('T', ' '),
+          isHolidayRisk: false
+        };
+      }
+    }
+
+    function calculateClassStats(examId) {
+      const exam = state.exams.find((e) => e.id === examId);
+      if (!exam) return null;
+
+      const studentTotals = [];
+      const subjectScores = {
+        chinese: [],
+        english: [],
+        math: [],
+        science: [],
+        social: []
+      };
+
+      state.students.forEach((st) => {
+        const g = exam.grades[st.seat];
+        if (g) {
+          const total = SUBJECT_KEYS.reduce((acc, k) => acc + (Number(g[k]) || 0), 0);
+          const avg = total / SUBJECT_KEYS.length;
+          studentTotals.push({ seat: st.seat, name: st.name, total, avg, grades: g });
+
+          SUBJECT_KEYS.forEach((k) => {
+            if (g[k] !== undefined && g[k] !== '') {
+              subjectScores[k].push(Number(g[k]));
+            }
+          });
+        }
+      });
+
+      // Sort descending for ranking
+      studentTotals.sort((a, b) => b.total - a.total);
+
+      // Rank mapping
+      const rankMap = {};
+      studentTotals.forEach((item, index) => {
+        rankMap[item.seat] = index + 1;
+      });
+
+      // Subject averages, max, min
+      const subjectStats = {};
+      SUBJECT_KEYS.forEach((k) => {
+        const arr = subjectScores[k];
+        if (arr.length > 0) {
+          const sum = arr.reduce((a, b) => a + b, 0);
+          const avg = sum / arr.length;
+          const max = Math.max(...arr);
+          const min = Math.min(...arr);
+          subjectStats[k] = { avg, max, min, count: arr.length };
+        } else {
+          subjectStats[k] = { avg: 0, max: 0, min: 0, count: 0 };
+        }
+      });
+
+      // Total stats
+      const totalArr = studentTotals.map((s) => s.total);
+      const avgArr = studentTotals.map((s) => s.avg);
+      const classAvgTotal = totalArr.length > 0 ? (totalArr.reduce((a, b) => a + b, 0) / totalArr.length) : 0;
+      const classAvgOverall = avgArr.length > 0 ? (avgArr.reduce((a, b) => a + b, 0) / avgArr.length) : 0;
+      const classMaxTotal = totalArr.length > 0 ? Math.max(...totalArr) : 0;
+
+      return {
+        studentTotals,
+        rankMap,
+        subjectStats,
+        classAvgTotal,
+        classAvgOverall,
+        classMaxTotal,
+        totalStudentsCount: studentTotals.length
+      };
+    }
+
+    // -------------------------------------------------------------
+    // UI RENDERING: PARENT LOGIN & DASHBOARD
+    // -------------------------------------------------------------
+    function populateSeatSelect() {
+      const select = document.getElementById('login-seat-select');
+      if (!select) return;
+
+      select.innerHTML = '<option value="">-- 請選取小孩座號 --</option>';
+      state.students
+        .slice()
+        .sort((a, b) => a.seat - b.seat)
+        .forEach((st) => {
+          const opt = document.createElement('option');
+          opt.value = st.seat;
+          opt.textContent = `${formatSeat(st.seat)} 號 - ${st.name}`;
+          select.appendChild(opt);
+        });
+    }
+
+    function populateExamSelects() {
+      const parentSelect = document.getElementById('exam-select');
+      if (!parentSelect) return;
+
+      parentSelect.innerHTML = state.exams.map((ex) => {
+        let label = escapeHtml(ex.title);
+        const status = getExamStatusInfo(ex);
+        if (status.isOpen) {
+          label += ' (🟢 開放中)';
+        } else {
+          label += ` (⏳ ${ex.releaseTime ? ex.releaseTime.substring(5, 16).replace('T', ' ') : '鎖定中'} 開放)`;
+        }
+        return `<option value="${ex.id}">${label}</option>`;
+      }).join('');
+
+      if (state.selectedExamId) {
+        parentSelect.value = state.selectedExamId;
+      }
+    }
+
+    function renderParentDashboard() {
+      const student = state.currentParentStudent;
+      if (!student) return;
+
+      const examId = state.selectedExamId;
+      const exam = state.exams.find((e) => e.id === examId) || state.exams[0];
+      if (!exam) return;
+
+      state.selectedExamId = exam.id;
+      const examSelect = document.getElementById('exam-select');
+      if (examSelect) examSelect.value = exam.id;
+
+      // Student Header Info
+      const seatBadge = document.getElementById('student-seat-badge');
+      if (seatBadge) seatBadge.textContent = formatSeat(student.seat);
+
+      const seatNum = document.getElementById('student-seat-num');
+      if (seatNum) seatNum.textContent = formatSeat(student.seat);
+
+      const nameDisplay = document.getElementById('student-name-display');
+      if (nameDisplay) nameDisplay.textContent = student.name + ' 同學';
+
+      const logNow = document.getElementById('log-time-now');
+      if (logNow) logNow.textContent = getNowTimestamp();
+
+      const logPrev = document.getElementById('log-time-prev');
+      if (logPrev) logPrev.textContent = getLastLogForStudent(student.seat);
+
+      // Check Release Status
+      const statusInfo = getExamStatusInfo(exam);
+      const statusBadge = document.getElementById('exam-open-status-badge');
+      if (statusBadge) {
+        if (statusInfo.isOpen) {
+          statusBadge.className = 'hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200';
+          statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-500 mr-1.5 animate-pulse"></span><span>查詢開放中</span>`;
+        } else {
+          statusBadge.className = 'hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200';
+          statusBadge.innerHTML = `<span class="w-2 h-2 rounded-full bg-amber-500 mr-1.5"></span><span>${escapeHtml(statusInfo.text)}</span>`;
+        }
+      }
+
+      if (!statusInfo.isOpen) {
+        // Locked / Scheduled exam: Hide grades, show locked notice!
+        document.getElementById('dashboard-grades-content').classList.add('hidden');
+        const lockedBox = document.getElementById('dashboard-locked-content');
+        lockedBox.classList.remove('hidden');
+        document.getElementById('locked-exam-title').textContent = exam.title;
+        document.getElementById('locked-release-time-display').textContent = statusInfo.releaseStr;
+        document.getElementById('locked-countdown-display').textContent = statusInfo.remainingStr || '尚未開放';
+        return; // Guard: Do NOT render scores
+      }
+
+      // Exam is open: Show grades content, hide locked notice
+      document.getElementById('dashboard-locked-content').classList.add('hidden');
+      document.getElementById('dashboard-grades-content').classList.remove('hidden');
+
+      // Update Single Score Card
+      const examBadge = document.getElementById('current-exam-title-badge');
+      if (examBadge) examBadge.textContent = exam.title;
+
+      const parentName = document.getElementById('parent-student-name');
+      if (parentName) parentName.textContent = `${student.name} 同學`;
+
+      const myScore = getStudentScore(exam, student.seat);
+      const scoreDisplay = document.getElementById('single-subject-score');
+      if (scoreDisplay) scoreDisplay.textContent = myScore;
+
+      const chartTag = document.getElementById('chart-subject-tag');
+      if (chartTag) chartTag.textContent = `${exam.title} 組距`;
+
+      // Render Distribution Histogram for this exam
+      renderDistributionChart(exam.id, student.seat);
+    }
+
+    // -------------------------------------------------------------
+    // CHART.JS: CLASS DISTRIBUTION HISTOGRAM (班級組距分佈圖)
+    // -------------------------------------------------------------
+    function renderDistributionChart(examId, mySeat) {
+      const canvas = document.getElementById('class-distribution-chart');
+      if (!canvas) return;
+
+      const exam = state.exams.find((e) => e.id === examId);
+      if (!exam) return;
+
+      let scores = [];
+      let myScore = null;
+
+      state.students.forEach((st) => {
+        const sc = getStudentScore(exam, st.seat);
+        scores.push({ seat: st.seat, score: sc });
+        if (st.seat === mySeat) myScore = sc;
+      });
+
+      // Standard 10-point distribution buckets (0-100)
+      const buckets = [
+        { label: '90 - 100分', min: 90, max: 100, count: 0 },
+        { label: '80 - 89分', min: 80, max: 89, count: 0 },
+        { label: '70 - 79分', min: 70, max: 79, count: 0 },
+        { label: '60 - 69分', min: 60, max: 69, count: 0 },
+        { label: '50 - 59分', min: 50, max: 59, count: 0 },
+        { label: '50分以下', min: 0, max: 49, count: 0 }
+      ];
+
+      scores.forEach((item) => {
+        for (let i = 0; i < buckets.length; i++) {
+          if (item.score >= buckets[i].min && item.score <= buckets[i].max) {
+            buckets[i].count++;
+            break;
+          }
+        }
+      });
+
+      let myBucketIndex = -1;
+      if (myScore !== null) {
+        for (let i = 0; i < buckets.length; i++) {
+          if (myScore >= buckets[i].min && myScore <= buckets[i].max) {
+            myBucketIndex = i;
+            break;
+          }
+        }
+      }
+
+      // Update Summary Note
+      const bucketLabel = myBucketIndex !== -1 ? buckets[myBucketIndex].label : '--';
+      const inBucketCount = myBucketIndex !== -1 ? buckets[myBucketIndex].count : 0;
+
+      const labelElem = document.getElementById('student-bucket-label');
+      const countElem = document.getElementById('student-in-bucket-count');
+      if (labelElem) labelElem.textContent = bucketLabel;
+      if (countElem) countElem.textContent = inBucketCount;
+
+      // Color highlights: Golden/Amber for student's bucket, Indigo/Blue for others
+      const backgroundColors = buckets.map((b, idx) => {
+        return idx === myBucketIndex ? 'rgba(245, 158, 11, 0.95)' : 'rgba(99, 102, 241, 0.65)';
+      });
+      const borderColors = buckets.map((b, idx) => {
+        return idx === myBucketIndex ? '#d97706' : '#4f46e5';
+      });
+
+      if (distributionChart) {
+        distributionChart.destroy();
+      }
+
+      distributionChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: buckets.map((b) => b.label),
+          datasets: [
+            {
+              label: '組距人數 (人)',
+              data: buckets.map((b) => b.count),
+              backgroundColor: backgroundColors,
+              borderColor: borderColors,
+              borderWidth: 2,
+              borderRadius: 8,
+              maxBarThickness: 50
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function (context) {
+                  const idx = context.dataIndex;
+                  const isMy = idx === myBucketIndex;
+                  return `${context.parsed.y} 人 ${isMy ? ' (⭐️ 貴子弟在此區間)' : ''}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                stepSize: 1,
+                font: { size: 11 }
+              },
+              grid: {
+                color: 'rgba(226, 232, 240, 0.6)'
+              }
+            },
+            x: {
+              ticks: {
+                font: { size: 11 }
+              },
+              grid: {
+                display: false
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderLogsTable(filterText = '') {
+      const tbody = document.getElementById('logs-tbody');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+      const filtered = state.logs.filter((log) => {
+        if (!filterText) return true;
+        const q = filterText.toLowerCase();
+        return (
+          String(log.seat).includes(q) ||
+          log.name.toLowerCase().includes(q) ||
+          log.examTitle.toLowerCase().includes(q) ||
+          log.timestamp.includes(q)
+        );
+      });
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-8 text-center text-slate-400">目前尚無家長查詢紀錄</td>
+          </tr>
+        `;
+        return;
+      }
+
+      filtered.forEach((log, idx) => {
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition';
+        tr.innerHTML = `
+          <td class="py-2.5 px-4 text-slate-400 font-mono">${idx + 1}</td>
+          <td class="py-2.5 px-4 font-bold text-slate-800">${formatSeat(log.seat)} 號</td>
+          <td class="py-2.5 px-4 text-slate-800 font-medium">${escapeHtml(log.name)}</td>
+          <td class="py-2.5 px-4">
+            <span class="bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded font-medium">${escapeHtml(log.examTitle)}</span>
+          </td>
+          <td class="py-2.5 px-4 text-slate-600 font-mono">${escapeHtml(log.timestamp)}</td>
+          <td class="py-2.5 px-4">
+            <span class="inline-flex items-center text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-medium">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+              ${escapeHtml(log.status)}
+            </span>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const badge = document.getElementById('tab-log-badge');
+      if (badge) badge.textContent = state.logs.length;
+    }
+
+    function updateLogMetrics() {
+      const totalViews = state.logs.length;
+      const uniqueSeats = new Set(state.logs.map((l) => l.seat));
+      const uniqueCount = uniqueSeats.size;
+      const totalStudents = state.students.length;
+      const viewRate = totalStudents > 0 ? ((uniqueCount / totalStudents) * 100).toFixed(0) : 0;
+      const unviewedCount = Math.max(0, totalStudents - uniqueCount);
+
+      const mTotal = document.getElementById('metric-total-views');
+      const mUnique = document.getElementById('metric-unique-students');
+      const mRate = document.getElementById('metric-view-rate');
+      const mUnviewed = document.getElementById('metric-unviewed-students');
+
+      if (mTotal) mTotal.textContent = totalViews;
+      if (mUnique) mUnique.textContent = `${uniqueCount} 人`;
+      if (mRate) mRate.textContent = `${viewRate}%`;
+      if (mUnviewed) mUnviewed.textContent = `${unviewedCount} 人`;
+    }
+
+        // -------------------------------------------------------------
+    // EXAMS OVERVIEW & DELETE LOGIC
+    // -------------------------------------------------------------
+    let examIdToDelete = null;
+
+    function renderAdminExamsOverview() {
+      const tbody = document.getElementById('admin-exams-overview-tbody');
+      const badge = document.getElementById('admin-exams-count-badge');
+      const activeSelect = document.getElementById('admin-active-exam-select');
+
+      if (badge) badge.textContent = `共 ${state.exams.length} 次評量`;
+
+      if (activeSelect) {
+        activeSelect.innerHTML = state.exams.map((ex) => {
+          return `<option value="${ex.id}" ${ex.id === state.selectedExamId ? 'selected' : ''}>${escapeHtml(ex.title)}</option>`;
+        }).join('');
+      }
+
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      if (state.exams.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">目前尚無任何上傳之考試成績，請由下方建立新考試</td></tr>`;
+        return;
+      }
+
+      state.exams.forEach((ex) => {
+        const status = getExamStatusInfo(ex);
+        const uploadCount = Object.keys(ex.grades || {}).length;
+        const isCurrent = ex.id === state.selectedExamId;
+
+        const tr = document.createElement('tr');
+        tr.className = `transition ${isCurrent ? 'bg-indigo-50/70 border-l-4 border-l-indigo-600' : 'hover:bg-slate-50'}`;
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-bold text-slate-800 flex items-center space-x-2">
+            <span>${escapeHtml(ex.title)}</span>
+            ${isCurrent ? '<span class="px-1.5 py-0.5 rounded text-[10px] bg-indigo-600 text-white font-semibold">編輯中</span>' : ''}
+          </td>
+          <td class="py-3 px-4 text-slate-500 font-mono">${escapeHtml(ex.date || '--')}</td>
+          <td class="py-3 px-4 text-slate-700 font-semibold">${uploadCount} 位學生</td>
+          <td class="py-3 px-4 font-mono text-slate-600">${escapeHtml(ex.releaseTime ? ex.releaseTime.replace('T', ' ') : '立即開放')}</td>
+          <td class="py-3 px-4">
+            <span class="inline-flex items-center px-2 py-0.5 rounded font-semibold text-xs ${status.badgeClass}">
+              ${status.text}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-center">
+            <div class="inline-flex items-center space-x-1.5">
+              <button type="button" class="btn-select-exam-view ${isCurrent ? 'bg-indigo-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'} px-2.5 py-1 rounded-md text-xs font-semibold transition" data-exam-id="${ex.id}">
+                ${isCurrent ? '✓ 檢視中' : '✏️ 編輯成績'}
+              </button>
+              <button type="button" class="btn-open-delete-modal bg-rose-50 hover:bg-rose-100 text-rose-700 px-2.5 py-1 rounded-md text-xs font-semibold transition" data-exam-id="${ex.id}">
+                🗑 刪除
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Wire select exam buttons
+      tbody.querySelectorAll('.btn-select-exam-view').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const examId = btn.getAttribute('data-exam-id');
+          state.selectedExamId = examId;
+          populateExamSelects();
+          renderAdminExamsOverview();
+          renderAdminGradesTable();
+          const targetSection = document.getElementById('admin-live-editor-section');
+          if (targetSection) targetSection.scrollIntoView({ behavior: 'smooth' });
+          showToast(`已載入「${state.exams.find(e => e.id === examId)?.title}」成績！`, 'info');
+        });
+      });
+
+      // Wire delete exam modal triggers
+      tbody.querySelectorAll('.btn-open-delete-modal').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const examId = btn.getAttribute('data-exam-id');
+          openDeleteExamModal(examId);
+        });
+      });
+    }
+
+    function openDeleteExamModal(examId) {
+      const exam = state.exams.find((e) => e.id === examId);
+      if (!exam) return;
+      examIdToDelete = examId;
+      document.getElementById('delete-exam-target-name').textContent = exam.title;
+      document.getElementById('modal-delete-exam-confirm').classList.remove('hidden');
+    }
+
+    function renderAdminGradesTable() {
+      const tbody = document.getElementById('admin-grades-tbody');
+      if (!tbody) return;
+
+      const examId = state.selectedExamId || (state.exams[0] && state.exams[0].id);
+      const exam = state.exams.find((e) => e.id === examId) || state.exams[0];
+      if (!exam) return;
+
+      const label = document.getElementById('admin-editing-exam-label');
+      if (label) label.textContent = exam.title;
+
+      tbody.innerHTML = '';
+      state.students
+        .slice()
+        .sort((a, b) => a.seat - b.seat)
+        .forEach((st) => {
+          const score = getStudentScore(exam, st.seat);
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50 transition';
+          tr.innerHTML = `
+            <td class="py-2.5 px-4 font-bold text-slate-800 font-mono">${formatSeat(st.seat)}</td>
+            <td class="py-2.5 px-4 font-semibold text-slate-800">${escapeHtml(st.name)}</td>
+            <td class="py-2.5 px-4">
+              <input type="number" min="0" max="100" class="grade-cell-input w-24 bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-center font-mono focus:ring-2 focus:ring-indigo-500 font-bold text-indigo-700" data-seat="${st.seat}" value="${score}">
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+      // Attach input event listener
+      tbody.querySelectorAll('.grade-cell-input').forEach((inp) => {
+        inp.addEventListener('input', (e) => {
+          const seat = Number(e.target.getAttribute('data-seat'));
+          exam.grades[seat] = Number(e.target.value) || 0;
+        });
+      });
+    }
+
+    function renderScheduleTable() {
+      const tbody = document.getElementById('schedule-exams-tbody');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+      state.exams.forEach((ex) => {
+        const status = getExamStatusInfo(ex);
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50 transition';
+
+        let riskTag = '';
+        if (status.isHolidayRisk) {
+          riskTag = '<span class="ml-1 text-[10px] text-amber-800 bg-amber-100 border border-amber-300 px-1.5 py-0.5 rounded font-semibold" title="教育局提醒：評量避免於放假前一日公布">⚠️ 週五/假日發布提醒</span>';
+        }
+
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-bold text-slate-800">
+            ${escapeHtml(ex.title)}
+          </td>
+          <td class="py-3 px-4 text-slate-500 font-mono">
+            ${escapeHtml(ex.date || '--')}
+          </td>
+          <td class="py-3 px-4">
+            <div class="flex items-center space-x-2">
+              <input type="datetime-local" class="schedule-input bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-mono outline-none focus:ring-2 focus:ring-indigo-500" data-exam-id="${ex.id}" value="${ex.releaseTime || ''}">
+              ${riskTag}
+            </div>
+          </td>
+          <td class="py-3 px-4">
+            <span class="inline-flex items-center px-2 py-0.5 rounded font-semibold text-xs ${status.badgeClass}">
+              ${status.text}
+            </span>
+          </td>
+          <td class="py-3 px-4 text-center">
+            <div class="inline-flex items-center space-x-1.5">
+              <button type="button" class="btn-sched-open-now bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-md text-xs font-medium transition" data-exam-id="${ex.id}">
+                ⚡️ 立即開放
+              </button>
+              <button type="button" class="btn-sched-monday bg-blue-50 hover:bg-blue-100 text-blue-700 px-2.5 py-1 rounded-md text-xs font-medium transition" data-exam-id="${ex.id}">
+                📅 下週一08:00
+              </button>
+              <button type="button" class="btn-sched-lock bg-amber-50 hover:bg-amber-100 text-amber-800 px-2.5 py-1 rounded-md text-xs font-medium transition" data-exam-id="${ex.id}">
+                ${ex.isLocked ? '🔓 解鎖' : '🔒 鎖定'}
+              </button>
+              <button type="button" class="btn-sched-save bg-indigo-600 hover:bg-indigo-700 text-white px-2.5 py-1 rounded-md text-xs font-medium transition" data-exam-id="${ex.id}">
+                儲存
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      // Attach button event listeners
+      tbody.querySelectorAll('.btn-sched-open-now').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const examId = btn.getAttribute('data-exam-id');
+          const ex = state.exams.find((e) => e.id === examId);
+          if (!ex) return;
+          const now = new Date();
+          // Format as YYYY-MM-DDTHH:mm
+          const pad = (n) => String(n).padStart(2, '0');
+          ex.releaseTime = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+          ex.isLocked = false;
+          saveState();
+          populateExamSelects();
+          renderScheduleTable();
+          showToast(`已即刻開放「${ex.title}」供家長查詢！`, 'success');
+        });
+      });
+
+      tbody.querySelectorAll('.btn-sched-monday').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const examId = btn.getAttribute('data-exam-id');
+          const ex = state.exams.find((e) => e.id === examId);
+          if (!ex) return;
+          // Calculate next Monday 08:00
+          const d = new Date();
+          const day = d.getDay();
+          const diffDays = (8 - day) % 7 || 7; // Next monday
+          d.setDate(d.getDate() + diffDays);
+          const pad = (n) => String(n).padStart(2, '0');
+          ex.releaseTime = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T08:00`;
+          ex.isLocked = false;
+          saveState();
+          populateExamSelects();
+          renderScheduleTable();
+          showToast(`已為「${ex.title}」設定於下週一 08:00 開放（避開週末放假）！`, 'success');
+        });
+      });
+
+      tbody.querySelectorAll('.btn-sched-lock').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const examId = btn.getAttribute('data-exam-id');
+          const ex = state.exams.find((e) => e.id === examId);
+          if (!ex) return;
+          ex.isLocked = !ex.isLocked;
+          saveState();
+          populateExamSelects();
+          renderScheduleTable();
+          showToast(ex.isLocked ? `已鎖定「${ex.title}」，家長暫時無法查詢` : `已解除「${ex.title}」鎖定`, 'info');
+        });
+      });
+
+      tbody.querySelectorAll('.btn-sched-save').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const examId = btn.getAttribute('data-exam-id');
+          const ex = state.exams.find((e) => e.id === examId);
+          if (!ex) return;
+          const row = btn.closest('tr');
+          const input = row.querySelector('.schedule-input');
+          ex.releaseTime = input.value;
+          saveState();
+          populateExamSelects();
+          renderScheduleTable();
+          showToast(`已更新「${ex.title}」開放查詢時間！`, 'success');
+        });
+      });
+    }
+
+    function renderStudentsRosterTable() {
+      const tbody = document.getElementById('student-roster-tbody');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+      state.students
+        .slice()
+        .sort((a, b) => a.seat - b.seat)
+        .forEach((st) => {
+          const queryCount = state.logs.filter((l) => l.seat === st.seat).length;
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-50 transition';
+          tr.innerHTML = `
+            <td class="py-2.5 px-4 font-bold text-slate-800 font-mono">${formatSeat(st.seat)} 號</td>
+            <td class="py-2.5 px-4 font-semibold text-slate-800">${escapeHtml(st.name)}</td>
+            <td class="py-2.5 px-4">
+              <div class="flex items-center space-x-1.5">
+                <code class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded font-mono">${escapeHtml(st.password)}</code>
+                <button type="button" class="btn-quick-edit-pwd text-indigo-600 hover:text-indigo-800 text-[11px] underline" data-seat="${st.seat}">改密碼</button>
+              </div>
+            </td>
+            <td class="py-2.5 px-4 text-slate-600">
+              ${queryCount > 0 ? `<span class="text-indigo-600 font-bold">${queryCount} 次</span>` : '<span class="text-slate-400">尚未查詢</span>'}
+            </td>
+            <td class="py-2.5 px-4 text-center">
+              <button type="button" class="btn-del-student text-rose-500 hover:text-rose-700 font-medium text-xs px-2 py-1 rounded" data-seat="${st.seat}">
+                刪除
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+      // Quick edit password listeners
+      tbody.querySelectorAll('.btn-quick-edit-pwd').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const seat = Number(btn.getAttribute('data-seat'));
+          const st = state.students.find((s) => s.seat === seat);
+          if (!st) return;
+          openStudentModal(st);
+        });
+      });
+
+      // Delete student listeners
+      tbody.querySelectorAll('.btn-del-student').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const seat = Number(btn.getAttribute('data-seat'));
+          if (state.students.length <= 1) {
+            showToast('名冊至少需保留一位學生！', 'error');
+            return;
+          }
+          state.students = state.students.filter((s) => s.seat !== seat);
+          saveState();
+          renderStudentsRosterTable();
+          populateSeatSelect();
+          renderAdminGradesTable();
+          showToast(`已刪除座號 ${seat} 號學生`, 'success');
+        });
+      });
+    }
+
+    function openStudentModal(st = null) {
+      const modal = document.getElementById('modal-student-edit');
+      const title = document.getElementById('student-modal-title');
+      const seatInp = document.getElementById('modal-seat-input');
+      const nameInp = document.getElementById('modal-name-input');
+      const pwdInp = document.getElementById('modal-pwd-input');
+
+      if (st) {
+        title.textContent = `修改座號 ${st.seat} 號學生資料`;
+        seatInp.value = st.seat;
+        seatInp.disabled = true;
+        nameInp.value = st.name;
+        pwdInp.value = st.password;
+      } else {
+        title.textContent = '新增單一學生';
+        const maxSeat = state.students.reduce((m, s) => Math.max(m, s.seat), 0);
+        seatInp.value = maxSeat + 1;
+        seatInp.disabled = false;
+        nameInp.value = '';
+        pwdInp.value = '1234';
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    // -------------------------------------------------------------
+    // EVENT LISTENERS & APP WIRING
+    // -------------------------------------------------------------
+    document.addEventListener('DOMContentLoaded', () => {
+      // Wire class name change button
+      const btnSaveClassName = document.getElementById('btn-save-class-name');
+      if (btnSaveClassName) {
+        btnSaveClassName.addEventListener('click', () => {
+          const inp = document.getElementById('admin-class-name-input');
+          const val = inp ? inp.value.trim() : '';
+          if (!val) {
+            showToast('班級名稱不能為空！', 'error');
+            return;
+          }
+          applyClassName(val);
+          saveState();
+          showToast(`已成功將班級名稱更改為「${val}」！`, 'success');
+        });
+      }
+      initFirebase();
+      loadState();
+      populateSeatSelect();
+      populateExamSelects();
+      renderLogsTable();
+      updateLogMetrics();
+      renderAdminExamsOverview();
+      renderAdminExamsOverview();
+      renderAdminGradesTable();
+      renderStudentsRosterTable();
+
+      // Parent Login Form
+      const loginForm = document.getElementById('form-parent-login');
+      const seatSelect = document.getElementById('login-seat-select');
+      const pwdInput = document.getElementById('login-password-input');
+      const loginError = document.getElementById('login-error-msg');
+
+      loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        loginError.classList.add('hidden');
+
+        const seat = Number(seatSelect.value);
+        const pwd = pwdInput.value.trim();
+
+        if (!seat) {
+          loginError.textContent = '請先選取學生座號！';
+          loginError.classList.remove('hidden');
+          seatSelect.focus();
+          return;
+        }
+
+        const student = state.students.find((s) => s.seat === seat);
+        if (!student) {
+          loginError.textContent = '查無此座號學生，請聯絡導師確認！';
+          loginError.classList.remove('hidden');
+          return;
+        }
+
+        if (student.password !== pwd) {
+          loginError.textContent = '密碼輸入不正確，請輸入學生身分證末四碼！若有疑問請聯繫導師。';
+          loginError.classList.remove('hidden');
+          pwdInput.classList.add('shake-anim');
+          setTimeout(() => pwdInput.classList.remove('shake-anim'), 500);
+          pwdInput.focus();
+          return;
+        }
+
+        // Login success!
+        state.currentParentStudent = student;
+        const exam = state.exams.find((ex) => ex.id === state.selectedExamId) || state.exams[0];
+
+        // Record Audit Log
+        recordAccessLog(student, exam ? exam.title : '學業成績');
+
+        // Switch to dashboard view
+        document.getElementById('view-parent-login').classList.add('hidden');
+        document.getElementById('view-parent-dashboard').classList.remove('hidden');
+
+        // Show header user chip
+        const chip = document.getElementById('logged-user-chip');
+        chip.classList.remove('hidden');
+        chip.classList.add('flex');
+        document.getElementById('logged-user-name').textContent = `${formatSeat(student.seat)} 號 ${student.name}`;
+
+        renderParentDashboard();
+        showToast(`歡迎 ${student.name} 家長，已成功登入！`, 'success');
+      });
+
+      // Quick login button
+      document.getElementById('btn-demo-quick-login').addEventListener('click', () => {
+        seatSelect.value = '1';
+        pwdInput.value = '5621';
+        showToast('已為您填入座號 01 號與預設身分證末四碼 5621，點擊登入即可！', 'info');
+      });
+
+      // Toggle Login Password Visibility
+      document.getElementById('btn-toggle-login-pwd').addEventListener('click', () => {
+        const isPwd = pwdInput.type === 'password';
+        pwdInput.type = isPwd ? 'text' : 'password';
+        document.getElementById('pwd-icon-show').classList.toggle('hidden', isPwd);
+        document.getElementById('pwd-icon-hide').classList.toggle('hidden', !isPwd);
+      });
+
+      // Switch to open exam button on locked screen
+      document.getElementById('btn-switch-to-open-exam').addEventListener('click', () => {
+        const openExam = state.exams.find((e) => isExamOpen(e)) || state.exams[0];
+        if (openExam) {
+          state.selectedExamId = openExam.id;
+          populateExamSelects();
+          renderParentDashboard();
+          showToast(`已切換至「${openExam.title}」`, 'info');
+        }
+      });
+
+      // Parent Dashboard Logout
+      const handleLogout = () => {
+        state.currentParentStudent = null;
+        document.getElementById('view-parent-dashboard').classList.add('hidden');
+        document.getElementById('view-parent-login').classList.remove('hidden');
+        const chip = document.getElementById('logged-user-chip');
+        chip.classList.add('hidden');
+        chip.classList.remove('flex');
+        pwdInput.value = '';
+        loginError.classList.add('hidden');
+        showToast('已安全登出查詢系統', 'info');
+      };
+
+      document.getElementById('btn-dashboard-logout').addEventListener('click', handleLogout);
+      document.getElementById('btn-header-logout').addEventListener('click', handleLogout);
+
+      // Parent Dashboard Exam Switch
+      document.getElementById('exam-select').addEventListener('change', (e) => {
+        state.selectedExamId = e.target.value;
+        const exam = state.exams.find((ex) => ex.id === state.selectedExamId);
+        if (state.currentParentStudent && exam) {
+          recordAccessLog(state.currentParentStudent, exam.title);
+        }
+        renderParentDashboard();
+        showToast(`已切換至「${exam ? exam.title : ''}」評量`, 'info');
+      });
+
+      // ========================================================
+      // ADMIN AUTH & ROUTING
+      // ========================================================
+      const adminModal = document.getElementById('modal-admin-login');
+      const adminPinInput = document.getElementById('admin-pin-input');
+      const adminAuthError = document.getElementById('admin-auth-error');
+
+      document.getElementById('btn-toggle-admin').addEventListener('click', () => {
+        if (state.isAdmin) {
+          // If already admin, toggle between parent and admin view
+          switchToAdminView();
+        } else {
+          adminPinInput.value = '';
+          adminAuthError.classList.add('hidden');
+          adminModal.classList.remove('hidden');
+          adminPinInput.focus();
+        }
+      });
+
+      document.getElementById('btn-close-admin-login-modal').addEventListener('click', () => {
+        adminModal.classList.add('hidden');
+      });
+
+      document.getElementById('btn-cancel-admin-modal').addEventListener('click', () => {
+        adminModal.classList.add('hidden');
+      });
+
+      document.getElementById('form-admin-auth').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const pin = adminPinInput.value.trim();
+        const validPin = state.config.adminPin || 'admin888';
+
+        if (pin === validPin) {
+          state.isAdmin = true;
+          adminModal.classList.add('hidden');
+          document.getElementById('admin-btn-text').textContent = '返回後台';
+          switchToAdminView();
+          showToast('已成功驗證身分，進入教師後台！', 'success');
+        } else {
+          adminAuthError.textContent = '管理密碼錯誤，請確認！(預設 admin888)';
+          adminAuthError.classList.remove('hidden');
+          adminPinInput.classList.add('shake-anim');
+          setTimeout(() => adminPinInput.classList.remove('shake-anim'), 500);
+          adminPinInput.focus();
+        }
+      });
+
+      function switchToAdminView() {
+        document.getElementById('view-parent-login').classList.add('hidden');
+        document.getElementById('view-parent-dashboard').classList.add('hidden');
+        document.getElementById('view-teacher-admin').classList.remove('hidden');
+        renderLogsTable();
+        updateLogMetrics();
+        renderAdminExamsOverview();
+        renderAdminExamsOverview();
+        renderAdminGradesTable();
+        renderStudentsRosterTable();
+        renderScheduleTable();
+      }
+
+      function switchToParentView() {
+        document.getElementById('view-teacher-admin').classList.add('hidden');
+        if (state.currentParentStudent) {
+          document.getElementById('view-parent-dashboard').classList.remove('hidden');
+          renderParentDashboard();
+        } else {
+          document.getElementById('view-parent-login').classList.remove('hidden');
+        }
+      }
+
+      document.getElementById('btn-admin-return-parent').addEventListener('click', switchToParentView);
+
+      document.getElementById('btn-admin-logout').addEventListener('click', () => {
+        state.isAdmin = false;
+        document.getElementById('admin-btn-text').textContent = '後台管理';
+        switchToParentView();
+        showToast('已登出教師管理後台', 'info');
+      });
+
+      // Admin Sub-Tab Navigation
+      const tabBtns = [
+        { btn: document.getElementById('tab-btn-logs'), panel: document.getElementById('admin-panel-logs') },
+        { btn: document.getElementById('tab-btn-grades'), panel: document.getElementById('admin-panel-grades') },
+        { btn: document.getElementById('tab-btn-schedule'), panel: document.getElementById('admin-panel-schedule') },
+        { btn: document.getElementById('tab-btn-students'), panel: document.getElementById('admin-panel-students') },
+        { btn: document.getElementById('tab-btn-gsheets'), panel: document.getElementById('admin-panel-gsheets') }
+      ];
+
+      tabBtns.forEach(({ btn, panel }) => {
+        btn.addEventListener('click', () => {
+          tabBtns.forEach((item) => {
+            item.btn.className = 'admin-tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center space-x-1.5';
+            item.panel.classList.add('hidden');
+          });
+          btn.className = 'admin-tab-btn active px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition bg-indigo-600 text-white shadow-sm flex items-center space-x-1.5';
+          panel.classList.remove('hidden');
+        });
+      });
+
+      // Log Filter Input
+      document.getElementById('filter-log-input').addEventListener('input', (e) => {
+        renderLogsTable(e.target.value);
+      });
+
+      // Clear Logs
+      document.getElementById('btn-clear-logs').addEventListener('click', () => {
+        if (state.logs.length === 0) return;
+        state.logs = [];
+        saveState();
+        renderLogsTable();
+        updateLogMetrics();
+        showToast('已清空所有查詢歷程日誌', 'info');
+      });
+
+      // Export Logs to CSV
+      document.getElementById('btn-export-logs-csv').addEventListener('click', () => {
+        if (state.logs.length === 0) {
+          showToast('目前無查詢紀錄可匯出！', 'error');
+          return;
+        }
+
+        let csv = '序號,座號,學生姓名,查詢考試項目,查詢時間,查詢裝置,狀態\n';
+        state.logs.forEach((log, idx) => {
+          csv += `${idx + 1},${log.seat},"${log.name}","${log.examTitle}","${log.timestamp}","${log.device}","${log.status}"\n`;
+        });
+
+        downloadCsv(csv, `學生成績查詢日誌_${getNowTimestamp().replace(/[: ]/g, '_')}.csv`);
+        showToast('已成功下載查詢日誌 CSV 檔！', 'success');
+      });
+
+      // ========================================================
+      // GRADE INPUT & FAST PASTE
+      // ========================================================
+      // Load sample paste text
+      document.getElementById('btn-load-sample-grade-paste').addEventListener('click', () => {
+        const sample = `座號	姓名	成績
+1	王小明	88
+2	李小華	92
+3	張大維	75
+4	陳美玲	95
+5	林志豪	68
+6	黃詩涵	84
+7	吳冠宇	79
+8	蔡欣怡	91
+9	楊承恩	82
+10	許家豪	73`;
+        document.getElementById('grade-paste-textarea').value = sample;
+        showToast('已填入範例格式（座號 姓名 成績），點擊下方按鈕即可儲存！', 'info');
+      });
+
+      // Add New Exam
+      document.getElementById('btn-add-new-exam').addEventListener('click', () => {
+        const nameInp = document.getElementById('new-exam-name-input');
+        const releaseInp = document.getElementById('new-exam-release-input');
+        const title = (nameInp && nameInp.value.trim()) || '';
+        if (!title) {
+          showToast('請先輸入考試名稱！', 'error');
+          if (nameInp) nameInp.focus();
+          return;
+        }
+
+        const releaseTimeVal = releaseInp ? releaseInp.value : '';
+        const newId = 'exam_' + Date.now();
+        const newExam = {
+          id: newId,
+          title: title,
+          date: getNowTimestamp().substring(0, 10),
+          releaseTime: releaseTimeVal || `${getNowTimestamp().substring(0, 10)}T08:00`,
+          isLocked: false,
+          grades: {}
+        };
+
+        state.students.forEach((st) => {
+          newExam.grades[st.seat] = 75;
+        });
+
+        state.exams.push(newExam);
+        state.selectedExamId = newId;
+        saveState();
+
+        populateExamSelects();
+        renderAdminExamsOverview();
+        renderAdminGradesTable();
+        renderScheduleTable();
+        showToast(`已建立考試項目「${title}」！`, 'success');
+      });
+
+      // Parse and Apply Pasted Grades
+      document.getElementById('btn-parse-and-apply-grades').addEventListener('click', () => {
+        const text = document.getElementById('grade-paste-textarea').value.trim();
+        const statusElem = document.getElementById('paste-parse-status');
+        const examNameInp = document.getElementById('new-exam-name-input');
+        const releaseInp = document.getElementById('new-exam-release-input');
+
+        if (!text) {
+          showToast('請先在文字框中貼上試算表內容！', 'error');
+          return;
+        }
+
+        const title = (examNameInp && examNameInp.value.trim()) || '第一次段考';
+        const releaseTime = (releaseInp && releaseInp.value) || `${getNowTimestamp().substring(0, 10)}T08:00`;
+
+        // Find or create exam
+        let exam = state.exams.find((e) => e.title === title);
+        if (!exam) {
+          exam = {
+            id: 'exam_' + Date.now(),
+            title: title,
+            date: getNowTimestamp().substring(0, 10),
+            releaseTime: releaseTime,
+            isLocked: false,
+            grades: {}
+          };
+          state.exams.push(exam);
+        } else {
+          if (releaseInp && releaseInp.value) {
+            exam.releaseTime = releaseInp.value;
+          }
+        }
+        state.selectedExamId = exam.id;
+
+        const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+        let updatedCount = 0;
+
+        lines.forEach((line) => {
+          const cols = line.includes('\t') ? line.split('\t') : line.split(',');
+          const cleanCols = cols.map((c) => c.trim().replace(/^"|"$/g, ''));
+
+          const seat = parseInt(cleanCols[0], 10);
+          if (!isNaN(seat) && seat > 0) {
+            let student = state.students.find((s) => s.seat === seat);
+            if (!student && cleanCols[1] && isNaN(parseInt(cleanCols[1], 10))) {
+              student = { seat: seat, name: cleanCols[1], password: '1234' };
+              state.students.push(student);
+            }
+
+            let scoreVal = 0;
+            if (cleanCols.length >= 3 && isNaN(Number(cleanCols[1]))) {
+              scoreVal = Number(cleanCols[2]) || 0;
+            } else if (cleanCols[1] !== undefined) {
+              scoreVal = Number(cleanCols[1]) || 0;
+            }
+
+            exam.grades[seat] = Math.min(100, Math.max(0, scoreVal));
+            updatedCount++;
+          }
+        });
+
+        if (updatedCount > 0) {
+          state.students.sort((a, b) => a.seat - b.seat);
+          saveState();
+          populateSeatSelect();
+          populateExamSelects();
+          renderAdminExamsOverview();
+          renderAdminGradesTable();
+          renderStudentsRosterTable();
+          renderScheduleTable();
+          statusElem.textContent = `✅ 成功建立/更新「${exam.title}」共 ${updatedCount} 筆成績！`;
+          statusElem.className = 'text-xs text-emerald-600 font-bold';
+          showToast(`已成功為「${exam.title}」更新 ${updatedCount} 位同學的成績！`, 'success');
+        } else {
+          statusElem.textContent = '❌ 無法辨識有效成績，請確保第一欄為座號數字、後續欄位包含分數。';
+          statusElem.className = 'text-xs text-rose-600 font-bold';
+          showToast('格式解析失敗，請確認是否包含座號與成績！', 'error');
+        }
+      });
+
+            // Wire delete exam modal
+      document.getElementById('btn-cancel-delete-exam').addEventListener('click', () => {
+        document.getElementById('modal-delete-exam-confirm').classList.add('hidden');
+        examIdToDelete = null;
+      });
+
+      document.getElementById('btn-confirm-delete-exam').addEventListener('click', () => {
+        if (!examIdToDelete) return;
+        const deleted = state.exams.find((e) => e.id === examIdToDelete);
+        state.exams = state.exams.filter((e) => e.id !== examIdToDelete);
+
+        if (state.exams.length === 0) {
+          state.exams.push({
+            id: 'exam_' + Date.now(),
+            title: '期中評量',
+            date: getNowTimestamp().substring(0, 10),
+            releaseTime: `${getNowTimestamp().substring(0, 10)}T08:00`,
+            isLocked: false,
+            grades: {}
+          });
+        }
+
+        state.selectedExamId = state.exams[0].id;
+        saveState();
+
+        populateExamSelects();
+        renderAdminExamsOverview();
+        renderAdminGradesTable();
+        renderScheduleTable();
+
+        document.getElementById('modal-delete-exam-confirm').classList.add('hidden');
+        examIdToDelete = null;
+        showToast(`已成功刪除「${deleted ? deleted.title : ''}」考試及其成績！`, 'success');
+      });
+
+      // Active exam select in live editor table
+      document.getElementById('admin-active-exam-select').addEventListener('change', (e) => {
+        state.selectedExamId = e.target.value;
+        populateExamSelects();
+        renderAdminExamsOverview();
+        renderAdminGradesTable();
+      });
+
+      // Quick delete active exam button
+      document.getElementById('btn-delete-active-exam').addEventListener('click', () => {
+        if (state.selectedExamId) {
+          openDeleteExamModal(state.selectedExamId);
+        }
+      });
+
+      // Save table edits
+      document.getElementById('btn-save-all-table-grades').addEventListener('click', () => {
+        const examId = state.selectedExamId || (state.exams[0] && state.exams[0].id);
+        const exam = state.exams.find((e) => e.id === examId) || state.exams[0];
+        if (!exam) return;
+
+        const inputs = document.querySelectorAll('.grade-cell-input');
+        inputs.forEach((inp) => {
+          const seat = Number(inp.getAttribute('data-seat'));
+          const val = Number(inp.value) || 0;
+          exam.grades[seat] = Math.min(100, Math.max(0, val));
+        });
+
+        saveState();
+        renderAdminGradesTable();
+        showToast(`已儲存「${exam.title}」所有修改之成績！`, 'success');
+      });
+
+      // Export Grades to CSV
+      document.getElementById('btn-export-grades-csv').addEventListener('click', () => {
+        const examId = state.selectedExamId || (state.exams[0] && state.exams[0].id);
+        const exam = state.exams.find((e) => e.id === examId) || state.exams[0];
+        if (!exam) return;
+
+        let csv = '座號,姓名,成績\n';
+        state.students.forEach((st) => {
+          const score = getStudentScore(exam, st.seat);
+          csv += `${st.seat},"${st.name}",${score}\n`;
+        });
+
+        downloadCsv(csv, `${exam.title}_成績總表_${getNowTimestamp().substring(0, 10)}.csv`);
+        showToast('已下載成績 CSV 檔案！', 'success');
+      });
+
+      // ========================================================
+      // STUDENT ROSTER & PASSWORDS MANAGEMENT
+      // ========================================================
+      document.getElementById('btn-show-add-student-modal').addEventListener('click', () => {
+        openStudentModal();
+      });
+
+      document.getElementById('btn-close-student-edit-modal').addEventListener('click', () => {
+        document.getElementById('modal-student-edit').classList.add('hidden');
+      });
+
+      document.getElementById('btn-cancel-student-modal').addEventListener('click', () => {
+        document.getElementById('modal-student-edit').classList.add('hidden');
+      });
+
+      document.getElementById('form-student-save').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const seat = Number(document.getElementById('modal-seat-input').value);
+        const name = document.getElementById('modal-name-input').value.trim();
+        const pwd = document.getElementById('modal-pwd-input').value.trim();
+
+        if (!seat || !name || !pwd) {
+          showToast('座號、姓名及密碼均為必填！', 'error');
+          return;
+        }
+
+        const existing = state.students.find((s) => s.seat === seat);
+        if (existing) {
+          existing.name = name;
+          existing.password = pwd;
+          showToast(`已更新座號 ${seat} 號 ${name} 的資料！`, 'success');
+        } else {
+          state.students.push({ seat, name, password: pwd });
+          state.students.sort((a, b) => a.seat - b.seat);
+
+          // Add default scores for new student
+          state.exams.forEach((ex) => {
+            if (!ex.grades[seat]) {
+              ex.grades[seat] = { chinese: 75, english: 75, math: 75, science: 75, social: 75 };
+            }
+          });
+          showToast(`已新增座號 ${seat} 號 ${name}！`, 'success');
+        }
+
+        saveState();
+        populateSeatSelect();
+        renderStudentsRosterTable();
+        renderAdminGradesTable();
+        document.getElementById('modal-student-edit').classList.add('hidden');
+      });
+
+      // Batch Apply Students
+      document.getElementById('btn-apply-batch-students').addEventListener('click', () => {
+        const text = document.getElementById('batch-students-textarea').value.trim();
+        if (!text) {
+          showToast('請先貼上學生名冊內容！', 'error');
+          return;
+        }
+
+        const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+        const newStudents = [];
+
+        lines.forEach((line) => {
+          const parts = line.split(/[\t, ]+/).filter(Boolean);
+          if (parts.length >= 2) {
+            const seat = parseInt(parts[0], 10);
+            const name = parts[1];
+            const pwd = parts[2] || '1234';
+            if (!isNaN(seat) && seat > 0) {
+              newStudents.push({ seat, name, password: pwd });
+            }
+          }
+        });
+
+        if (newStudents.length > 0) {
+          newStudents.sort((a, b) => a.seat - b.seat);
+          state.students = newStudents;
+          saveState();
+          populateSeatSelect();
+          renderStudentsRosterTable();
+          renderAdminGradesTable();
+          showToast(`成功批次匯入 ${newStudents.length} 位學生座號與密碼！`, 'success');
+        } else {
+          showToast('無法辨識名冊格式，請確保每一行依序為「座號 姓名 密碼」', 'error');
+        }
+      });
+
+      // Batch Reset Password
+      document.getElementById('btn-batch-reset-pwd').addEventListener('click', () => {
+        state.students.forEach((s) => {
+          const base = 5600 + (s.seat * 17);
+          s.password = String(base).substring(0, 4);
+        });
+        saveState();
+        renderStudentsRosterTable();
+        showToast('已將全班學生查詢密碼統一重設為身分證末四碼！', 'success');
+      });
+
+      // ========================================================
+      // GOOGLE SHEETS & BACKUP / RESTORE
+      // ========================================================
+      const gsheetInp = document.getElementById('gsheet-api-url-input');
+      if (state.config.gsheetUrl) gsheetInp.value = state.config.gsheetUrl;
+
+      document.getElementById('btn-save-gsheet-url').addEventListener('click', () => {
+        state.config.gsheetUrl = gsheetInp.value.trim();
+        saveState();
+        showToast('已儲存 Google 試算表連線網址！', 'success');
+      });
+
+      document.getElementById('btn-test-gsheet-sync').addEventListener('click', async () => {
+        const url = gsheetInp.value.trim();
+        const status = document.getElementById('gsheet-sync-status');
+        if (!url) {
+          showToast('請先輸入 Google Apps Script 部署網址！', 'error');
+          return;
+        }
+
+        status.textContent = '🔄 正在連線至 Google 試算表...';
+        status.className = 'text-xs text-blue-600 font-medium';
+
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const data = await res.json();
+
+          if (Array.isArray(data) && data.length > 0) {
+            status.textContent = `✅ 連線成功！成功取得 ${data.length} 筆試算表列資料。`;
+            status.className = 'text-xs text-emerald-600 font-bold';
+            showToast('Google 試算表連線成功！', 'success');
+          } else {
+            status.textContent = '⚠️ 已收到回應，但試算表內容為空。';
+            status.className = 'text-xs text-amber-600 font-medium';
+          }
+        } catch (err) {
+          status.textContent = '❌ 連線失敗：' + err.message + ' (請確認網址與 Apps Script 存取權限已設為 Anyone)';
+          status.className = 'text-xs text-rose-600 font-bold';
+          showToast('連線失敗，請確認試算表權限！', 'error');
+        }
+      });
+
+      // Copy GAS code
+      document.getElementById('btn-copy-gas-code').addEventListener('click', () => {
+        const code = document.getElementById('gas-code-block').innerText;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(code).then(() => {
+            showToast('已複製 Google Apps Script 程式碼！', 'success');
+          });
+        } else {
+          showToast('請手動選取並複製代碼區塊！', 'info');
+        }
+      });
+
+      // Download Backup JSON
+      document.getElementById('btn-backup-download').addEventListener('click', () => {
+        const backup = {
+          exportTime: getNowTimestamp(),
+          students: state.students,
+          exams: state.exams,
+          logs: state.logs,
+          config: state.config
+        };
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `學生成績系統備份_${getNowTimestamp().replace(/[: ]/g, '_')}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast('備份檔案已成功下載！', 'success');
+      });
+
+      // Restore Backup JSON
+      document.getElementById('file-restore-input').addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const data = JSON.parse(event.target.result);
+            if (data.students && data.exams) {
+              state.students = data.students;
+              state.exams = data.exams;
+              state.logs = data.logs || [];
+              if (data.config) state.config = data.config;
+              saveState();
+              populateSeatSelect();
+              populateExamSelects();
+              renderLogsTable();
+              updateLogMetrics();
+              renderAdminGradesTable();
+              renderStudentsRosterTable();
+              showToast('已成功還原備份資料！', 'success');
+            } else {
+              showToast('檔案格式不相符！', 'error');
+            }
+          } catch (err) {
+            showToast('無法解析 JSON 檔案：' + err.message, 'error');
+          }
+        };
+        reader.readAsText(file);
+      });
+
+      // Reset Demo Data
+      document.getElementById('btn-reset-demo-data').addEventListener('click', () => {
+        state.students = JSON.parse(JSON.stringify(DEFAULT_STUDENTS));
+        state.exams = JSON.parse(JSON.stringify(DEFAULT_EXAMS));
+        state.logs = [];
+        state.config = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+        saveState();
+        populateSeatSelect();
+        populateExamSelects();
+        renderLogsTable();
+        updateLogMetrics();
+        renderAdminGradesTable();
+        renderStudentsRosterTable();
+        showToast('已重設為 30 位學生之預設示範資料！', 'success');
+      });
+
+    });
+
+    // Helper: CSV Download
+    function downloadCsv(content, filename) {
+      // Add UTF-8 BOM so Excel opens it with proper Chinese characters
+      const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
