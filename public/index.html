@@ -154,9 +154,8 @@
             </button>
           </form>
 
-          <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-            <span>忘記密碼？請聯繫導師協助查詢</span>
-            <button type="button" id="btn-demo-quick-login" class="text-indigo-600 hover:text-indigo-800 font-medium">快速填入 01 號登入</button>
+          <div class="pt-2 border-t border-slate-100 flex items-center justify-center text-xs text-slate-500">
+            <span>忘記密碼？請聯繫導師協助查詢或重設</span>
           </div>
         </div>
       </div>
@@ -2292,12 +2291,7 @@
         showToast(`歡迎 ${student.name} 家長，已成功登入！`, 'success');
       });
 
-      // Quick login button
-      document.getElementById('btn-demo-quick-login').addEventListener('click', () => {
-        seatSelect.value = '1';
-        pwdInput.value = '5621';
-        showToast('已為您填入座號 01 號與預設身分證末四碼 5621，點擊登入即可！', 'info');
-      });
+
 
       // Toggle Login Password Visibility
       document.getElementById('btn-toggle-login-pwd').addEventListener('click', () => {
