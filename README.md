@@ -1,6 +1,6 @@
 # 🎓 學生學業成績查詢系統與後台管理專案包
 
-> 專為國中小導師與學校打造的學生成績線上查詢專區。家長僅能透過座號與身分證末四碼查看個人成績與常態組距直方圖，不公開名次與個人等第；教師具備完整管理後台，可自訂班級名稱、隨時排定開放時間（落實放假前夕不公布評量成績之教育法規保護）與即時追蹤查詢日誌。
+> 專為國中小導師與學校打造的學生成績線上查詢專區。家長僅能透過座號與身分證末四碼查看個人成績與常態常態組距直方圖，不公開名次與個人等第；教師具備完整管理後台，可自訂班級名稱、隨時排定開放時間（落實放假前夕不公布評量成績之教育法規保護）與即時追蹤查詢日誌。
 
 ---
 
@@ -26,6 +26,7 @@
 ## 🌐 線上部署展示 (Firebase Hosting)
 - **正式發布網址**：[https://grade-system-103.web.app](https://grade-system-103.web.app)
 - **備用網址**：[https://grade-system-103.firebaseapp.com](https://grade-system-103.firebaseapp.com)
+- **GitHub 儲存庫**：[https://github.com/arthur0213-tech/grade-system-firebase](https://github.com/arthur0213-tech/grade-system-firebase)
 
 ---
 
@@ -56,10 +57,24 @@
 
 ---
 
-## 🔒 預設帳號與測試資料
-- **家長查詢登入**：
-  - 座號：選取 `01` 號
-  - 密碼：預設為身分證末四碼 `5621`（亦可於登入頁點選「快速填入 01 號登入」）
-- **教師後台管理員**：
-  - 點擊右上角「後台管理」按鈕
-  - 預設管理員密碼：`admin888`
+## 🛠️ 如何交給 Antigravity 或手動部署？
+
+### 方式一：交給 Antigravity AI Agent
+將專案解壓縮後，把 `PROMPT_FOR_ANTIGRAVITY.md` 的內容交給 Antigravity，它將自動為您完成：
+1. 本地 Git 提交與推播至 GitHub。
+2. 連結至指定的 Firebase 專案。
+3. 部署至 Firebase Hosting 與 Firestore。
+
+### 方式二：手動部署至 Firebase
+1. 確保已安裝 Node.js 與 Firebase CLI：
+   ```bash
+   npm install -g firebase-tools
+   firebase login
+   ```
+2. 將 `.firebaserc` 中的專案 ID 替換為您的 Firebase 專案 ID。
+3. 在 `public/index.html` 中的 `firebaseConfig` 填入您的 Firebase 網頁 SDK 金鑰。
+4. 執行部署指令：
+   ```bash
+   firebase deploy
+   ```
+5. 完成後即可獲取專屬網址，分享給全班家長使用！
