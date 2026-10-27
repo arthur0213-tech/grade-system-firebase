@@ -1047,44 +1047,134 @@
     // -------------------------------------------------------------
     // DATA MODEL & STATE
     // -------------------------------------------------------------
-    const STORAGE_KEY_STUDENTS = 'GRADE_SYS_STUDENTS_V1';
-    const STORAGE_KEY_EXAMS = 'GRADE_SYS_EXAMS_V1';
-    const STORAGE_KEY_LOGS = 'GRADE_SYS_LOGS_V1';
-    const STORAGE_KEY_CONFIG = 'GRADE_SYS_CONFIG_V1';
+    const STORAGE_KEY_STUDENTS = 'GRADE_SYS_STUDENTS_V2';
+    const STORAGE_KEY_EXAMS = 'GRADE_SYS_EXAMS_V2';
+    const STORAGE_KEY_LOGS = 'GRADE_SYS_LOGS_V2';
+    const STORAGE_KEY_CONFIG = 'GRADE_SYS_CONFIG_V2';
 
     // Default 30 mock students
     const DEFAULT_STUDENTS = [
-      { seat: 1, name: '王小明', password: '5621' },
-      { seat: 2, name: '李小華', password: '3842' },
-      { seat: 3, name: '張大維', password: '7190' },
-      { seat: 4, name: '陳美玲', password: '8314' },
-      { seat: 5, name: '林志豪', password: '2905' },
-      { seat: 6, name: '黃詩涵', password: '6471' },
-      { seat: 7, name: '吳冠宇', password: '1839' },
-      { seat: 8, name: '蔡欣怡', password: '9204' },
-      { seat: 9, name: '楊承恩', password: '4518' },
-      { seat: 10, name: '許家豪', password: '7362' },
-      { seat: 11, name: '鄭雅婷', password: '8129' },
-      { seat: 12, name: '謝宗翰', password: '3940' },
-      { seat: 13, name: '郭宜君', password: '5283' },
-      { seat: 14, name: '洪子軒', password: '6715' },
-      { seat: 15, name: '邱柏宇', password: '9402' },
-      { seat: 16, name: '曾佩琪', password: '1578' },
-      { seat: 17, name: '廖建宏', password: '4831' },
-      { seat: 18, name: '賴俊彥', password: '2964' },
-      { seat: 19, name: '徐雅筑', password: '7305' },
-      { seat: 20, name: '周宇翔', password: '8149' },
-      { seat: 21, name: '葉佳穎', password: '3620' },
-      { seat: 22, name: '蘇俊傑', password: '9514' },
-      { seat: 23, name: '莊宛婷', password: '4287' },
-      { seat: 24, name: '江育廷', password: '6731' },
-      { seat: 25, name: '何家瑋', password: '5190' },
-      { seat: 26, name: '潘思妤', password: '8406' },
-      { seat: 27, name: '彭聖凱', password: '2739' },
-      { seat: 28, name: '馬庭萱', password: '3615' },
-      { seat: 29, name: '簡佑丞', password: '9082' },
-      { seat: 30, name: '盧品妤', password: '4173' }
-    ];
+      {
+            "seat": 1,
+            "name": "許晴",
+            "password": "4902"
+      },
+      {
+            "seat": 2,
+            "name": "楊喆允",
+            "password": "4920"
+      },
+      {
+            "seat": 3,
+            "name": "蔡品妮",
+            "password": "4911"
+      },
+      {
+            "seat": 4,
+            "name": "林芮靖",
+            "password": "5070"
+      },
+      {
+            "seat": 5,
+            "name": "郭豫澄",
+            "password": "5169"
+      },
+      {
+            "seat": 6,
+            "name": "蔡喬安",
+            "password": "5329"
+      },
+      {
+            "seat": 7,
+            "name": "李甯",
+            "password": "7512"
+      },
+      {
+            "seat": 8,
+            "name": "吳霈琦",
+            "password": "3598"
+      },
+      {
+            "seat": 9,
+            "name": "黃伊凡",
+            "password": "5810"
+      },
+      {
+            "seat": 10,
+            "name": "許安媞",
+            "password": "6693"
+      },
+      {
+            "seat": 11,
+            "name": "陳宥涵",
+            "password": "6988"
+      },
+      {
+            "seat": 12,
+            "name": "周棠樂",
+            "password": "8713"
+      },
+      {
+            "seat": 13,
+            "name": "陳冠佑",
+            "password": "3306"
+      },
+      {
+            "seat": 14,
+            "name": "周楷宸",
+            "password": "3511"
+      },
+      {
+            "seat": 15,
+            "name": "朱千遇",
+            "password": "5981"
+      },
+      {
+            "seat": 16,
+            "name": "呂柏翔",
+            "password": "0643"
+      },
+      {
+            "seat": 17,
+            "name": "周祉晏",
+            "password": "0590"
+      },
+      {
+            "seat": 18,
+            "name": "李冠穎",
+            "password": "1391"
+      },
+      {
+            "seat": 19,
+            "name": "林譽叡",
+            "password": "4027"
+      },
+      {
+            "seat": 20,
+            "name": "黃永燊",
+            "password": "8652"
+      },
+      {
+            "seat": 21,
+            "name": "董博軒",
+            "password": "1891"
+      },
+      {
+            "seat": 22,
+            "name": "李存津",
+            "password": "2576"
+      },
+      {
+            "seat": 23,
+            "name": "楊宸勛",
+            "password": "2530"
+      },
+      {
+            "seat": 24,
+            "name": "石亦宸",
+            "password": "8956"
+      }
+];
 
     const SUBJECT_KEYS = ['chinese', 'english', 'math', 'science', 'social'];
     const SUBJECT_NAMES = {
@@ -1111,30 +1201,105 @@
     // Default 3 exams with release time configuration
     const DEFAULT_EXAMS = [
       {
-        id: 'exam_1',
-        title: '第一次段考',
-        date: '2026-10-15',
-        releaseTime: '2026-10-15T08:00',
-        isLocked: false,
-        grades: {}
+            "id": "exam_chinese_1",
+            "title": "國語第一次平時考",
+            "date": "2026-10-27",
+            "releaseTime": "2026-10-27T08:00",
+            "isLocked": false,
+            "grades": {
+                  "1": 99,
+                  "2": 97,
+                  "3": 96,
+                  "4": 40,
+                  "5": 95,
+                  "6": 83,
+                  "7": 99,
+                  "8": 92,
+                  "9": 78,
+                  "10": 89,
+                  "11": 86,
+                  "12": 91,
+                  "13": 91,
+                  "14": 70,
+                  "15": 77,
+                  "16": 97,
+                  "17": 95,
+                  "18": 93,
+                  "19": 90,
+                  "20": 94,
+                  "21": 69,
+                  "22": 92,
+                  "23": 95,
+                  "24": 97
+            }
       },
       {
-        id: 'exam_2',
-        title: '第二次段考',
-        date: '2026-11-28',
-        releaseTime: '2026-11-30T08:00',
-        isLocked: false,
-        grades: {}
+            "id": "exam_math_1",
+            "title": "數學第一次平時考",
+            "date": "2026-10-27",
+            "releaseTime": "2026-10-27T08:00",
+            "isLocked": false,
+            "grades": {
+                  "1": 100,
+                  "2": 96,
+                  "3": 71,
+                  "4": 69,
+                  "5": 98,
+                  "6": 86,
+                  "7": 92,
+                  "8": 86,
+                  "9": 65,
+                  "10": 79,
+                  "11": 76,
+                  "12": 92,
+                  "13": 94,
+                  "14": 66,
+                  "15": 65,
+                  "16": 94,
+                  "17": 88,
+                  "18": 93,
+                  "19": 82,
+                  "20": 85,
+                  "21": 33,
+                  "22": 67,
+                  "23": 72,
+                  "24": 100
+            }
       },
       {
-        id: 'exam_3',
-        title: '第一次模擬考',
-        date: '2026-12-20',
-        releaseTime: '2026-12-22T08:00',
-        isLocked: false,
-        grades: {}
+            "id": "exam_math_quiz_1",
+            "title": "數學第一單元小考",
+            "date": "2026-10-27",
+            "releaseTime": "2026-10-27T08:00",
+            "isLocked": false,
+            "grades": {
+                  "1": 96,
+                  "2": 100,
+                  "3": 100,
+                  "4": 88,
+                  "5": 100,
+                  "6": 100,
+                  "7": 100,
+                  "8": 100,
+                  "9": 95,
+                  "10": 100,
+                  "11": 100,
+                  "12": 100,
+                  "13": 100,
+                  "14": 90,
+                  "15": 88,
+                  "16": 100,
+                  "17": 100,
+                  "18": 100,
+                  "19": 100,
+                  "20": 100,
+                  "21": 96,
+                  "22": 95,
+                  "23": 94,
+                  "24": 97
+            }
       }
-    ];
+];
 
     function generateScoreForStudent(seat, factor = 0) {
       const base = 68 + ((seat * 19) % 28);
@@ -1273,6 +1438,94 @@
         console.warn('Firebase init error, fallback to LocalStorage:', err);
         isFirebaseActive = false;
       }
+    }
+
+    
+    // -------------------------------------------------------------
+    // UNIVERSAL MULTI-COLUMN EXCEL & GOOGLE SHEETS IMPORTER
+    // -------------------------------------------------------------
+    function importStructuredData(data) {
+      if (!Array.isArray(data) || data.length === 0) return { studentCount: 0, examCount: 0 };
+
+      // Sample first item to determine keys
+      const sample = data[0];
+      const allKeys = Object.keys(sample);
+
+      // Identify seat, name, and pwd keys
+      const seatKey = allKeys.find((k) => /座號|seat/i.test(k.trim())) || allKeys[0];
+      const nameKey = allKeys.find((k) => /姓名|name/i.test(k.trim())) || allKeys[1];
+      const pwdKey = allKeys.find((k) => /密碼|password|pwd/i.test(k.trim()));
+
+      // Exam keys are all remaining columns (e.g. 國語第一次平時考, 數學第一次平時考, 數學第一單元小考)
+      const examKeys = allKeys.filter((k) => k !== seatKey && k !== nameKey && k !== pwdKey && k.trim().length > 0);
+
+      const examMap = {};
+      examKeys.forEach((title) => {
+        const cleanTitle = title.trim();
+        let exam = state.exams.find((e) => e.title === cleanTitle);
+        if (!exam) {
+          exam = {
+            id: 'exam_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            title: cleanTitle,
+            date: getNowTimestamp().substring(0, 10),
+            releaseTime: `${getNowTimestamp().substring(0, 10)}T08:00`,
+            isLocked: false,
+            grades: {}
+          };
+          state.exams.push(exam);
+        }
+        examMap[cleanTitle] = exam;
+      });
+
+      let studentCount = 0;
+      data.forEach((row) => {
+        const seat = parseInt(row[seatKey], 10);
+        if (isNaN(seat) || seat <= 0) return;
+
+        const name = row[nameKey] ? String(row[nameKey]).trim() : `學生${seat}`;
+        let rawPwd = (pwdKey && row[pwdKey] !== undefined && row[pwdKey] !== null) ? String(row[pwdKey]).trim() : '';
+        if (rawPwd && rawPwd.length < 4 && !isNaN(Number(rawPwd))) {
+          rawPwd = rawPwd.padStart(4, '0');
+        }
+
+        let student = state.students.find((s) => s.seat === seat);
+        if (!student) {
+          student = { seat: seat, name: name, password: rawPwd || '1234' };
+          state.students.push(student);
+        } else {
+          if (name) student.name = name;
+          if (rawPwd) student.password = rawPwd;
+        }
+        studentCount++;
+
+        examKeys.forEach((k) => {
+          const cleanTitle = k.trim();
+          const exam = examMap[cleanTitle];
+          const rawScore = row[k];
+          if (rawScore !== undefined && rawScore !== null && rawScore !== '') {
+            const num = Number(rawScore);
+            if (!isNaN(num)) {
+              exam.grades[seat] = Math.min(100, Math.max(0, num));
+            }
+          }
+        });
+      });
+
+      state.students.sort((a, b) => a.seat - b.seat);
+      if (examKeys.length > 0 && examMap[examKeys[0].trim()]) {
+        state.selectedExamId = examMap[examKeys[0].trim()].id;
+      }
+
+      saveState();
+      populateSeatSelect();
+      populateExamSelects();
+      renderAdminExamsOverview();
+      renderAdminGradesTable();
+      renderStudentsRosterTable();
+      renderScheduleTable();
+      if (state.currentParentStudent) renderParentDashboard();
+
+      return { studentCount: studentCount, examCount: examKeys.length };
     }
 
     function setupFirestoreRealtimeListener() {
@@ -2261,7 +2514,10 @@
           return;
         }
 
-        if (student.password !== pwd) {
+        const isMatch = (student.password === pwd) ||
+                        (student.password.padStart(4, '0') === pwd) ||
+                        (pwd.padStart(4, '0') === student.password);
+        if (!isMatch) {
           loginError.textContent = '密碼輸入不正確，請輸入學生身分證末四碼！若有疑問請聯繫導師。';
           loginError.classList.remove('hidden');
           pwdInput.classList.add('shake-anim');
@@ -2725,6 +2981,30 @@
         state.selectedExamId = exam.id;
 
         const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+        if (lines.length === 0) return;
+
+        // Check if first line has column headers
+        const firstLineCols = (lines[0].includes('\t') ? lines[0].split('\t') : lines[0].split(',')).map((c) => c.trim().replace(/^"|"$/g, ''));
+        const hasHeader = firstLineCols.some((c) => /座號|姓名|密碼|考|成績/i.test(c));
+
+        if (hasHeader && firstLineCols.length >= 3) {
+          const headers = firstLineCols;
+          const rows = [];
+          for (let i = 1; i < lines.length; i++) {
+            const cols = (lines[i].includes('\t') ? lines[i].split('\t') : lines[i].split(',')).map((c) => c.trim().replace(/^"|"$/g, ''));
+            const obj = {};
+            headers.forEach((h, idx) => {
+              obj[h] = cols[idx] !== undefined ? cols[idx] : '';
+            });
+            rows.push(obj);
+          }
+          const summary = importStructuredData(rows);
+          statusElem.textContent = `✅ 智慧解析完成！成功同步 ${summary.studentCount} 位學生、${summary.examCount} 項評量成績！`;
+          statusElem.className = 'text-xs text-emerald-600 font-bold';
+          showToast(`已成功由 Excel 建立 ${summary.studentCount} 位學生及 ${summary.examCount} 項考試！`, 'success');
+          return;
+        }
+
         let updatedCount = 0;
 
         lines.forEach((line) => {
@@ -2981,9 +3261,10 @@
           const data = await res.json();
 
           if (Array.isArray(data) && data.length > 0) {
-            status.textContent = `✅ 連線成功！成功取得 ${data.length} 筆試算表列資料。`;
+            const summary = importStructuredData(data);
+            status.textContent = `✅ 同步成功！成功載入 ${summary.studentCount} 位學生、${summary.examCount} 項評量成績。`;
             status.className = 'text-xs text-emerald-600 font-bold';
-            showToast('Google 試算表連線成功！', 'success');
+            showToast(`已成功同步 ${summary.studentCount} 位學生、${summary.examCount} 項評量成績！`, 'success');
           } else {
             status.textContent = '⚠️ 已收到回應，但試算表內容為空。';
             status.className = 'text-xs text-amber-600 font-medium';
