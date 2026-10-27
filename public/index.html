@@ -1050,122 +1050,122 @@
     const DEFAULT_STUDENTS = [
       {
             "seat": 1,
-            "name": "許晴",
+            "name": "許O",
             "password": "4902"
       },
       {
             "seat": 2,
-            "name": "楊喆允",
+            "name": "楊O允",
             "password": "4920"
       },
       {
             "seat": 3,
-            "name": "蔡品妮",
+            "name": "蔡O妮",
             "password": "4911"
       },
       {
             "seat": 4,
-            "name": "林芮靖",
+            "name": "林O靖",
             "password": "5070"
       },
       {
             "seat": 5,
-            "name": "郭豫澄",
+            "name": "郭O澄",
             "password": "5169"
       },
       {
             "seat": 6,
-            "name": "蔡喬安",
+            "name": "蔡O安",
             "password": "5329"
       },
       {
             "seat": 7,
-            "name": "李甯",
+            "name": "李O",
             "password": "7512"
       },
       {
             "seat": 8,
-            "name": "吳霈琦",
+            "name": "吳O琦",
             "password": "3598"
       },
       {
             "seat": 9,
-            "name": "黃伊凡",
+            "name": "黃O凡",
             "password": "5810"
       },
       {
             "seat": 10,
-            "name": "許安媞",
+            "name": "許O媞",
             "password": "6693"
       },
       {
             "seat": 11,
-            "name": "陳宥涵",
+            "name": "陳O涵",
             "password": "6988"
       },
       {
             "seat": 12,
-            "name": "周棠樂",
+            "name": "周O樂",
             "password": "8713"
       },
       {
             "seat": 13,
-            "name": "陳冠佑",
+            "name": "陳O佑",
             "password": "3306"
       },
       {
             "seat": 14,
-            "name": "周楷宸",
+            "name": "周O宸",
             "password": "3511"
       },
       {
             "seat": 15,
-            "name": "朱千遇",
+            "name": "朱O遇",
             "password": "5981"
       },
       {
             "seat": 16,
-            "name": "呂柏翔",
+            "name": "呂O翔",
             "password": "0643"
       },
       {
             "seat": 17,
-            "name": "周祉晏",
+            "name": "周O晏",
             "password": "0590"
       },
       {
             "seat": 18,
-            "name": "李冠穎",
+            "name": "李O穎",
             "password": "1391"
       },
       {
             "seat": 19,
-            "name": "林譽叡",
+            "name": "林O叡",
             "password": "4027"
       },
       {
             "seat": 20,
-            "name": "黃永燊",
+            "name": "黃O燊",
             "password": "8652"
       },
       {
             "seat": 21,
-            "name": "董博軒",
+            "name": "董O軒",
             "password": "1891"
       },
       {
             "seat": 22,
-            "name": "李存津",
+            "name": "李O津",
             "password": "2576"
       },
       {
             "seat": 23,
-            "name": "楊宸勛",
+            "name": "楊O勛",
             "password": "2530"
       },
       {
             "seat": 24,
-            "name": "石亦宸",
+            "name": "石O宸",
             "password": "8956"
       }
 ];
@@ -1476,7 +1476,7 @@
         const seat = parseInt(row[seatKey], 10);
         if (isNaN(seat) || seat <= 0) return;
 
-        const name = row[nameKey] ? String(row[nameKey]).trim() : `學生${seat}`;
+        const name = maskStudentName(row[nameKey] ? String(row[nameKey]).trim() : `學生${seat}`);
         let rawPwd = (pwdKey && row[pwdKey] !== undefined && row[pwdKey] !== null) ? String(row[pwdKey]).trim() : '';
         if (rawPwd && rawPwd.length < 4 && !isNaN(Number(rawPwd))) {
           rawPwd = rawPwd.padStart(4, '0');
@@ -3216,7 +3216,7 @@
       document.getElementById('form-student-save').addEventListener('submit', (e) => {
         e.preventDefault();
         const seat = Number(document.getElementById('modal-seat-input').value);
-        const name = document.getElementById('modal-name-input').value.trim();
+        const name = maskStudentName(document.getElementById('modal-name-input').value.trim());
         const pwd = document.getElementById('modal-pwd-input').value.trim();
 
         if (!seat || !name || !pwd) {
