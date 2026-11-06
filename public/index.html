@@ -1439,6 +1439,14 @@
 
     
     // -------------------------------------------------------------
+    // 資安去識別化：將學生名字第二個字轉為 'O'
+    function maskStudentName(name) {
+      if (!name || typeof name !== 'string') return '';
+      const s = name.trim();
+      if (s.length < 2) return s;
+      return s[0] + 'O' + s.slice(2);
+    }
+
     // UNIVERSAL MULTI-COLUMN EXCEL & GOOGLE SHEETS IMPORTER
     // -------------------------------------------------------------
     function importStructuredData(data) {
