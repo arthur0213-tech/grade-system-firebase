@@ -1410,6 +1410,7 @@
 
     let firestoreDb = null;
     let isFirebaseActive = false;
+    let hasFirestoreInitialLoad = false;
 
     function initFirebase() {
       const statusChip = document.getElementById('firebase-cloud-status');
@@ -1537,12 +1538,22 @@
     function setupFirestoreRealtimeListener() {
       if (!firestoreDb) return;
       firestoreDb.collection('grade_system').doc('main_data').onSnapshot((doc) => {
+        hasFirestoreInitialLoad = true;
         if (doc.exists) {
           const data = doc.data();
           if (data.students && Array.isArray(data.students)) state.students = data.students;
           if (data.exams && Array.isArray(data.exams)) state.exams = data.exams;
           if (data.logs && Array.isArray(data.logs)) state.logs = data.logs;
           if (data.config) state.config = data.config;
+
+          // 同步最新雲端資料回寫本機 LocalStorage 快取，防止日後離線或開新分頁時讀到舊資料
+          try {
+            localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(state.students));
+            localStorage.setItem(STORAGE_KEY_EXAMS, JSON.stringify(state.exams));
+            localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(state.logs));
+            localStorage.setItem(STORAGE_KEY_CONFIG, JSON.stringify(state.config));
+          } catch (e) {}
+
           applyClassName(state.config.className || '八年三班');
           populateSeatSelect();
           populateExamSelects();
@@ -1563,6 +1574,12 @@
 
     function syncStateToFirestore() {
       if (!isFirebaseActive || !firestoreDb) return;
+      // 關鍵防線 1：尚未從 Firestore 載入過真實資料前，不可進行覆寫同步（避免開新分頁時用空/預設資料蓋掉雲端）
+      if (!hasFirestoreInitialLoad) return;
+      // 關鍵防線 2：只有老師/管理員（state.isAdmin === true）才有權限將考卷、名冊、班級設定回寫雲端！
+      // 家長與學生端絕對禁止回寫 exams 與 config，杜絕家長端因舊快取沖刷掉老師剛建立的期中考/各項成績！
+      if (!state.isAdmin) return;
+
       try {
         firestoreDb.collection('grade_system').doc('main_data').set({
           students: state.students,
@@ -1662,7 +1679,25 @@
       state.logs.unshift(logEntry);
       // Keep up to 2000 log records
       if (state.logs.length > 2000) state.logs.pop();
-      saveState();
+
+      // 僅存入本機日誌快取
+      try {
+        localStorage.setItem(STORAGE_KEY_LOGS, JSON.stringify(state.logs));
+      } catch (e) {}
+
+      // 若有連線 Firebase，使用原子操作 arrayUnion 僅新增日誌，絕對不碰 exams 與 students！
+      if (isFirebaseActive && firestoreDb) {
+        try {
+          firestoreDb.collection('grade_system').doc('main_data').update({
+            logs: firebase.firestore.FieldValue.arrayUnion(logEntry)
+          }).catch((err) => {
+            console.warn('Firestore log append error:', err);
+          });
+        } catch (err) {
+          console.warn('Failed to push log to Firestore:', err);
+        }
+      }
+
       renderLogsTable();
       updateLogMetrics();
     }
@@ -2753,7 +2788,19 @@
           matched.password = newVal;
         }
 
-        saveState();
+        try {
+          localStorage.setItem(STORAGE_KEY_STUDENTS, JSON.stringify(state.students));
+        } catch (e) {}
+
+        // 家長變更密碼僅精確更新 students 名冊，絕不碰觸考卷或評量成績
+        if (isFirebaseActive && firestoreDb) {
+          try {
+            firestoreDb.collection('grade_system').doc('main_data').update({
+              students: state.students
+            }).catch((err) => console.warn('Failed to sync student password change to Firestore:', err));
+          } catch (err) {}
+        }
+
         recordAccessLog(state.currentParentStudent, '自主變更查詢密碼');
         closeStudentChangePwdModal();
         showToast('查詢密碼已成功更新！下次請使用新密碼登入。', 'success');
